@@ -23,6 +23,13 @@ assert.match(html,/T011/);
 await nav('staff');assert.match(html,/Khu vực dành cho nhân viên/);
 await act('demo-staff');assert.match(html,/Quản lý phòng khám/);
 assert.match(html,/Phòng 101/);
+await nav('reception'); assert.match(html,/Quầy tiếp đón/);
+assert.match(html,/Danh sách lượt khám/);
+await nav('board'); assert.match(html,/Bảng theo dõi khu chờ/);
+assert.match(html,/ĐANG GỌI/);
+assert.doesNotMatch(html,/Minh Anh/); // Do not expose patient names on public display.
+await nav('guide'); assert.match(html,/Hướng dẫn sử dụng/);
+await nav('staff');
 // A patient code can be checked in only from the staff workflow.
 const ownerBefore=JSON.parse(mem.get('mediqueue_web_demo_v1')).tickets.find(t=>t.patient_id==='demo-me' && t.queue_number===11);
 assert.equal(ownerBefore.checked_in_at,null);
@@ -40,4 +47,4 @@ assert.match(html,/Hủy phiếu/);
 await act('confirm-modal');
 const canceled=JSON.parse(mem.get('mediqueue_web_demo_v1')).tickets.find(t=>t.id===ownerBefore.id);
 assert.equal(canceled.status,'SKIPPED');
-console.log('MediQueue smoke test: PASS (home, booking, ownership, role gate, staff, analytics, account)');
+console.log('MediQueue smoke test: PASS (home, booking, reception, privacy-safe TV board, guide, staff, analytics, account)');
