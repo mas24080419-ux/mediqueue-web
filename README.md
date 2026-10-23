@@ -1,3 +1,22 @@
+# MediQueue Hospital Queue Web V1.1
+
+**[Open live website](https://mas24080419-ux.github.io/mediqueue-web/)** · [Hospital deployment checklist](./HOSPITAL_DEPLOYMENT.md)
+
+MediQueue is a **working outpatient queue demonstration** with separate patient, hospital reception, clinician/room dispatcher, lobby calling-board and supervisor analytics screens.
+
+**Modules**
+- **Tổng quan:** departmental workload and current queue state.
+- **Lấy số khám / Phiếu của tôi:** online queue ticket and estimated waiting time.
+- **Tiếp đón:** staff-only check-in and attendance verification.
+- **Điều phối phòng:** independent per-room calls, begin/finish, skip, recall, room transfer and pause.
+- **Bảng gọi số TV:** privacy-preserving room call display, fullscreen option, no patient names.
+- **Thống kê:** aggregated volumes.
+- **Hướng dẫn sử dụng:** operating steps and emergency routing.
+
+**Important:** GitHub Pages runs a local synthetic-data demo by default. Supabase-Dev remains separate and is not enabled for public real patient data. This is **not** a hospital information system ready for actual care.
+
+---
+
 # MediQueue Web — Responsive GitHub Pages
 
 Website tĩnh 100% HTML/CSS/JavaScript (không cần Node, build service hoặc framework). Dùng được trên điện thoại và desktop.
