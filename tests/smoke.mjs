@@ -16,6 +16,7 @@ assert.match(html,/Khám tổng quát/);
 assert.match(html,/MediQueue/);
 const nav=async page=>{const target={matches:()=>false,closest:(sel)=>sel==='[data-page]'?{dataset:{page}}:null};await handlers.click({target});};
 const act=async (action,attrs={})=>{const target={closest:(sel)=>sel==='[data-action]'?{dataset:{action,...attrs}}:null,matches:()=>false};await handlers.click({target});};
+await nav('reception');assert.match(html,/Quầy tiếp đón/);assert.doesNotMatch(html,/Minh Anh/); // Patient cannot access staff list.
 await nav('book');assert.match(html,/Đăng ký lấy số/);
 await handlers.submit({preventDefault(){},target:{id:'bookingForm',data:{patientName:'Người Demo',department:'GENERAL'}}});
 assert.match(html,/Theo dõi lượt khám/);
