@@ -28,3 +28,4 @@ release(); await rejected;
 assert.equal(second.getSession(),null,'late refresh cannot restore logged-out session');
 assert.equal(state.has('mq_web_session_v2'),false);
 console.log('Session race tests PASS: single refresh for six requests; logout blocks late refresh');
+

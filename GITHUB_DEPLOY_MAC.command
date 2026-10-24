@@ -19,3 +19,4 @@ if git remote get-url origin >/dev/null 2>&1; then git remote set-url origin "$r
 echo "Đang push lên $repo..."
 git push -u origin main
 printf '\nĐã push mã nguồn. Bật GitHub Pages tại: %s/settings/pages\n' "$repo"
+

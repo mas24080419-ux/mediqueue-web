@@ -24,3 +24,4 @@ assert.equal(location.hash,'');
 const saved=state.get('mq_web_session_v2');
 assert.ok(!saved.includes('password'));
 console.log('Auth callback test PASS: explicit redirect, verify token with Supabase, clear fragment, persist valid session');
+

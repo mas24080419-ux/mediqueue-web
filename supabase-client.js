@@ -103,16 +103,21 @@ export async function rpc(method,args) {
   return request(`${config.url}/rest/v1/rpc/${method}`,{method:'POST',headers:headers(token),body:JSON.stringify(args)});
 }
 export async function loadCloudData() {
-  const s=getSession(); if(!s?.user?.id) throw new Error('Chưa có tài khoản.');
-  const profiles=await select('mq_profiles',`select=id,display_name,role,department_code&id=eq.${encodeURIComponent(s.user.id)}`);
-  const profile=profiles[0];if(!profile) throw new Error('Không tìm thấy hồ sơ và vai trò người dùng.');
-  const isStaff=profile.role==='staff'||profile.role==='admin';
-  const d=profile.department_code;
-  const [departments,rooms,live,roomLive,tickets]=await Promise.all([
-    select('mq_departments','select=*'),select('mq_rooms','select=*'),select('mq_department_live','select=*'),
-    select('mq_room_live','select=*'),
-    select('mq_tickets',`select=*&${isStaff?(d?`department_code=eq.${encodeURIComponent(d)}`:'id=gt.0'):`patient_id=eq.${encodeURIComponent(s.user.id)}`}&order=created_at.desc&limit=120`)
-  ]);
-  return {profile,departments,rooms,live,roomLive,tickets};
+ const s=getSession(); if(!s?.user?.id) throw new Error('Chưa có tài khoản.');
+ const profiles=await select('mq_profiles',`select=id,display_name,role,department_code&id=eq.${encodeURIComponent(s.user.id)}`);
+ const profile=profiles[0];if(!profile)throw new Error('Không tìm thấy hồ sơ người dùng.');
+ const access=await rpc('mq_my_access',{});
+ if(access?.user_id!==s.user.id || access?.role!==profile.role)throw new Error('Không thể xác minh quyền.');
+ if(access.is_hospital_admin){const overview=await rpc('mq_hospital_overview',{});return {profile,access,...overview,tickets:[],overview};}
+ const patient=profile.role==='patient';
+ const active=(access.assignments||[]).filter(a=>Date.parse(a.valid_from)<=Date.now()&&Date.now()<Date.parse(a.valid_to));
+ const codes=[...new Set(active.map(a=>a.department_code))];
+ if(!patient&&!codes.length)return {profile,access,departments:[],rooms:[],live:[],roomLive:[],tickets:[]};
+ const scope=patient?'':`&department_code=in.(${codes.map(encodeURIComponent).join(',')})`;
+ const [departments,rooms,live,roomLive,tickets]=await Promise.all([
+  select('mq_departments','select=*'+(patient?'':`&code=in.(${codes.map(encodeURIComponent).join(',')})`)),
+  select('mq_rooms','select=*'+scope),select('mq_department_live','select=*'+scope),select('mq_room_live','select=*'+scope),
+  select('mq_tickets',`select=*&${patient?`patient_id=eq.${encodeURIComponent(s.user.id)}`:`department_code=in.(${codes.map(encodeURIComponent).join(',')})`}&order=created_at.desc&limit=120`)
+ ]);
+ return {profile,access,departments,rooms,live,roomLive,tickets};
 }
-

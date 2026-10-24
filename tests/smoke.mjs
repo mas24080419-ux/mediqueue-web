@@ -8,7 +8,7 @@ Object.defineProperty(globalThis,'navigator',{value:{clipboard:{writeText:async(
 globalThis.BroadcastChannel=class { constructor(){} postMessage(){} };
 globalThis.setInterval=()=>0;globalThis.setTimeout=()=>0;
 let html='';const handlers={};
-globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:(id)=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(event,fn)=>{handlers[event]=fn}};
+globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:(id)=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(event,fn)=>{const prev=handlers[event];handlers[event]=async e=>{if(prev)await prev(e);await fn(e);}}};
 globalThis.FormData=class {constructor(form){this.form=form;}get(n){return this.form.data[n];}};
 await import('../app.js');
 assert.match(html,/Tài khoản/); // Public deployment opens in cloud login mode.
@@ -23,7 +23,7 @@ assert.match(html,/Theo dõi lượt khám/);
 assert.match(html,/T011/);
 await nav('staff');assert.doesNotMatch(html,/Quản lý phòng khám/);
 await act('demo-staff');assert.doesNotMatch(html,/Quản lý phòng khám/);
-await nav('board');assert.match(html,/Bảng theo dõi khu chờ/);
+await nav('board');assert.doesNotMatch(html,/Bảng theo dõi khu chờ/);
 assert.doesNotMatch(html,/Minh Anh/);
 await nav('account');assert.match(html,/Sang cổng nhân viên/);
 const ownerBefore=JSON.parse(mem.get('mediqueue_web_demo_v1')).tickets.find(t=>t.patient_id==='demo-me'&&t.queue_number===11);
@@ -32,3 +32,4 @@ assert.match(html,/Hủy phiếu/);await act('confirm-modal');
 const canceled=JSON.parse(mem.get('mediqueue_web_demo_v1')).tickets.find(t=>t.id===ownerBefore.id);
 assert.equal(canceled.status,'SKIPPED');
 console.log('Patient portal smoke: PASS (registration, queue, privacy, staff restriction, cancel)');
+

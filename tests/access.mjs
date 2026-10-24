@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {menuFor,permitted,routeAllowed} from '../access.js';
+const now=Date.now();
+const grant=(job,room=null)=>({id:'assigned-1',job_title:job,department_code:'GENERAL',room_id:room,valid_from:new Date(now-60000).toISOString(),valid_to:new Date(now+60000).toISOString()});
+const access=a=>({role:'staff',assignments:[a],is_hospital_admin:false});
+const patient={role:'patient',assignments:[]};
+assert.ok(routeAllowed('book',patient,'patient'));assert.equal(routeAllowed('staff',patient,'patient'),false);assert.equal(routeAllowed('admin-home',patient,'admin'),false);
+const r=access(grant('reception'));
+assert.ok(permitted(r,'checkin','GENERAL',null));assert.equal(permitted(r,'call','GENERAL','GENERAL_101'),false);assert.equal(permitted(r,'checkin','PEDIATRICS',null),false);
+const d=access(grant('doctor','GENERAL_101'));
+assert.ok(permitted(d,'START','GENERAL','GENERAL_101'));assert.equal(permitted(d,'START','GENERAL','GENERAL_104'),false);assert.equal(permitted(d,'checkin','GENERAL','GENERAL_101'),false);
+for(const job of ['nurse','laboratory','imaging','pharmacy','cashier']){const a=access(grant(job));assert.equal(permitted(a,'call','GENERAL','GENERAL_101'),false);assert.equal(routeAllowed('staff',a,'staff'),false);assert.ok(routeAllowed('tasks',a,'staff'));}
+const expired=grant('doctor','GENERAL_101');expired.valid_to=new Date(now-1).toISOString();assert.equal(permitted(access(expired),'START','GENERAL','GENERAL_101'),false);
+assert.equal(routeAllowed('staff',{role:'staff',assignments:[]},'staff'),false);
+assert.equal(routeAllowed('admin-home',{role:'admin',assignments:[],is_hospital_admin:false},'admin'),false);
+assert.ok(routeAllowed('admin-home',{role:'admin',assignments:[],is_hospital_admin:true},'admin'));
+const multi={role:'staff',assignments:[grant('doctor','GENERAL_101'),{...grant('reception'),id:'second'}]};
+assert.equal(permitted(multi,'checkin','GENERAL',null,'assigned-1'),false);assert.ok(permitted(multi,'checkin','GENERAL',null,'second'));
+assert.equal(menuFor(null,'staff').some(x=>x[0]==='staff'),false);
+console.log('V3 access policy PASS: patient, 8 job titles, admin gate, scope, shift, selected assignment and unassigned denial');

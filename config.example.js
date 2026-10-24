@@ -3,3 +3,4 @@
 // Khi chưa có config.js, trang chạy mặc định ở chế độ DEMO với dữ liệu giả.
 export const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YOUR_KEY';
+
