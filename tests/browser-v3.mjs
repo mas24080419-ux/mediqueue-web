@@ -37,7 +37,7 @@ try{
   const page=await context.newPage();page.setDefaultTimeout(5000);page.setDefaultNavigationTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
    const file=job==='patient'?'index.html':job==='admin'?'admin.html':'staff.html';
-   await page.goto('http://127.0.0.1:4173/'+file);await page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true}).waitFor();
+   await page.goto('http://127.0.0.1:4173/'+file);await page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true}).waitFor({state:'attached'});
    await page.waitForFunction(()=>!document.body.textContent.includes('Đăng nhập bệnh nhân')&&!document.body.textContent.includes('Đăng nhập nội bộ'));
    const nav=page.locator('.mq-nav');
    if(job==='patient'){assert.equal(await nav.getByRole('button',{name:'Điều phối phòng khám',exact:true}).count(),0);assert.equal(await nav.getByRole('button',{name:'Tài khoản & phân quyền',exact:true}).count(),0);}
