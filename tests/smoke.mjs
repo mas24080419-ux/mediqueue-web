@@ -11,11 +11,11 @@ let html='';const handlers={};
 globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:(id)=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(event,fn)=>{handlers[event]=fn}};
 globalThis.FormData=class {constructor(form){this.form=form;}get(n){return this.form.data[n];}};
 await import('../app.js');
-assert.match(html,/Chào mừng trở lại/);
-assert.match(html,/Khám tổng quát/);
-assert.match(html,/MediQueue/);
+assert.match(html,/Tài khoản/); // Public deployment opens in cloud login mode.
 const nav=async page=>{const target={matches:()=>false,closest:(sel)=>sel==='[data-page]'?{dataset:{page}}:null};await handlers.click({target});};
 const act=async (action,attrs={})=>{const target={closest:(sel)=>sel==='[data-action]'?{dataset:{action,...attrs}}:null,matches:()=>false};await handlers.click({target});};
+await nav('account');await act('toggle-cloud');await nav('home');
+assert.match(html,/Chào mừng trở lại/);assert.match(html,/Khám tổng quát/);assert.match(html,/MediQueue/);
 await nav('reception');assert.match(html,/Quầy tiếp đón/);assert.doesNotMatch(html,/Minh Anh/); // Patient cannot access staff list.
 await nav('book');assert.match(html,/Đăng ký lấy số/);
 await handlers.submit({preventDefault(){},target:{id:'bookingForm',data:{patientName:'Người Demo',department:'GENERAL'}}});
