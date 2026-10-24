@@ -32,8 +32,8 @@ jobs:
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html staff.html styles.css app.js supabase-client.js config.js .nojekyll _site/
-          cp assets/logo.svg _site/assets/logo.svg
+          cp index.html staff.html admin.html auth-v3.css styles.css dashboard.css premium-sidebar.css integration.css app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
+          cp assets/logo.svg assets/mark.svg _site/assets/
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website
@@ -43,4 +43,5 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
 

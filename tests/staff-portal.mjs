@@ -7,7 +7,7 @@ Object.defineProperty(globalThis,'navigator',{value:{clipboard:{writeText:async(
 globalThis.BroadcastChannel=class { postMessage(){} };
 globalThis.setInterval=()=>0;globalThis.setTimeout=()=>0;
 let html='';const handlers={};
-globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:id=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(name,fn)=>{handlers[name]=fn}};
+globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:id=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(name,fn)=>{const prev=handlers[name];handlers[name]=async e=>{if(prev)await prev(e);await fn(e);}}};
 globalThis.FormData=class{constructor(x){this.x=x;}get(k){return this.x.data[k];}};
 await import('../app.js');
 assert.match(html,/Đăng nhập nhân viên \/ quản trị/);
@@ -17,10 +17,11 @@ const act=async(action)=>{const target={matches:()=>false,closest:sel=>sel==='[d
 await act('auth-signup-tab');assert.doesNotMatch(html,/Tạo tài khoản bệnh nhân/);
 await nav('book');assert.doesNotMatch(html,/Đăng ký lấy số/);
 await act('toggle-cloud');await nav('staff');
-assert.match(html,/Quản lý phòng khám/);
+assert.match(html,/Gọi lượt tiếp theo/);
 await nav('reception');assert.match(html,/Quầy tiếp đón/);
 await nav('analytics');assert.match(html,/Phân tích hoạt động/);
 await nav('board');assert.match(html,/Bảng theo dõi khu chờ/);
 assert.doesNotMatch(html,/Minh Anh/);
 await nav('account');assert.match(html,/Sang cổng bệnh nhân/);
 console.log('Staff portal smoke: PASS (staff-only login, no signup, reception, coordination, privacy-safe board)');
+

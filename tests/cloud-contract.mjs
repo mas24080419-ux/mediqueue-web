@@ -9,6 +9,7 @@ globalThis.fetch=async (url,opts={})=>{
   calls.push({url:String(url),opts});
   if(String(url).includes('/auth/v1/token?grant_type=password'))
     return respond({access_token:'test-user-jwt',refresh_token:'test-refresh',expires_in:3600,user});
+  if(String(url).includes('/rest/v1/rpc/mq_my_access'))return respond({user_id:user.id,role:'patient',assignments:[],state:'patient',is_hospital_admin:false});
   if(String(url).includes('/rest/v1/mq_profiles?'))
     return respond([{id:user.id,role:'patient',display_name:'Test',department_code:null}]);
   if(String(url).includes('/rest/v1/mq_tickets?'))
@@ -34,3 +35,4 @@ await cloud.signOut();
 assert.equal(cloud.getSession(),null);
 await assert.rejects(cloud.rpc('mq_issue_ticket',{}),/đăng nhập/i);
 console.log('MediQueue cloud contract: PASS (login, expiry, patient scope, JWT, RPC, sign out)');
+

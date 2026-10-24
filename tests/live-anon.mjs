@@ -15,3 +15,4 @@ for(const [name,path,options] of [
  console.log(name+' unauthorized: HTTP '+res.status);
 }
 console.log('Live anonymous-access smoke test PASS');
+

@@ -1,0 +1,42 @@
+name: V3 integration checks (no deployment)
+on:
+  push:
+    branches: [integration/premium-sidebar-v3]
+  pull_request:
+concurrency:
+  group: v3-checks-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and regression tests
+        run: |
+          node --check app.js
+          node --check premium-sidebar.js
+          node --check supabase-client.js
+          node tests/smoke.mjs
+          node tests/staff-portal.mjs
+          node tests/access.mjs
+          node tests/cloud-contract.mjs
+          node tests/auth-callback.mjs
+          node tests/session-races.mjs
+          node tests/live-anon.mjs
+      - name: Install pinned browser test tooling
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Browser role, responsive and navigation tests (mock Auth/API)
+        run: node tests/browser-v3.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v3-ui-evidence-mock
+          path: test-results/
