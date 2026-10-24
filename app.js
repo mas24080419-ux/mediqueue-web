@@ -1,4 +1,4 @@
-import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc,consumeAuthRedirect} from './supabase-client.js';
+import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc,consumeAuthRedirect} from './supabase-client.js?v=20261024-auth2';
 
 const STAFF_PORTAL = typeof window !== 'undefined' && /\/staff\.html$/i.test(window.location?.pathname || '');
 const UI={page:STAFF_PORTAL?'account':'home',role:STAFF_PORTAL?'staff':'patient',mode:'demo',authTab:'login',dept:'GENERAL',room:'GENERAL_101',staffSearch:'',filter:'ALL',authBusy:false,authError:'',syncError:'',remote:null,modal:null,showMenu:false,waiting:{},updated:Date.now()};
