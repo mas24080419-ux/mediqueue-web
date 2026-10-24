@@ -1,4 +1,4 @@
-import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc} from './supabase-client.js';
+import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc,consumeAuthRedirect} from './supabase-client.js';
 
 const UI={page:'home',role:'patient',mode:'demo',authTab:'login',dept:'GENERAL',room:'GENERAL_101',staffSearch:'',filter:'ALL',authBusy:false,remote:null,modal:null,showMenu:false,waiting:{},updated:Date.now()};
 const storeKey='mediqueue_web_demo_v1';
@@ -130,9 +130,18 @@ document.addEventListener('click',async e=>{if(e.target.matches('.modal-backdrop
 document.addEventListener('change',e=>{if(e.target.id==='staffDept'){UI.dept=e.target.value;UI.room=rooms().find(r=>r.department_code===UI.dept)?.id||'';render();}if(e.target.id==='staffRoom'){UI.room=e.target.value;render();}if(e.target.id==='demoName'){demo.myName=e.target.value.trim();persist();} });
 document.addEventListener('input',e=>{if(e.target.id==='staffSearch'){UI.staffSearch=e.target.value;const pos=e.target.selectionStart;render();const x=document.getElementById('staffSearch');x?.focus();x?.setSelectionRange(pos,pos);}});
 document.addEventListener('submit',async e=>{if(e.target.id==='bookingForm'){e.preventDefault();const fd=new FormData(e.target),n=String(fd.get('patientName')||'').trim(),d=String(fd.get('department')||'GENERAL');if(n.length<2){toast('Tên phải có ít nhất 2 ký tự.','error');return;}UI.dept=d;if(UI.mode==='demo'){demo.myName=n;}const done=await execute('mq_issue_ticket',{p_department:d,p_name:n,p_request_key:rand()},'Đã cấp số thứ tự thành công.');if(done){UI.page='track';render();}}
-else if(e.target.id==='authForm'){e.preventDefault();const fd=new FormData(e.target),email=String(fd.get('email')),pw=String(fd.get('password'));try{if(UI.authTab==='login'){await signIn(email,pw);await refresh(true);UI.page='home';render();toast('Đăng nhập thành công.');}else{const v=await signUp(email,pw);toast(v?.session?'Đăng ký thành công.':'Đã gửi yêu cầu đăng ký, hãy kiểm tra email xác minh.');UI.authTab='login';render();}}catch(err){toast(err.message,'error');}}
+else if(e.target.id==='authForm'){e.preventDefault();const fd=new FormData(e.target),email=String(fd.get('email')),pw=String(fd.get('password'));try{if(UI.authTab==='login'){await signIn(email,pw);await refresh(true);UI.page='home';render();toast('Đăng nhập thành công.');}else{const v=await signUp(email,pw);if(getSession()){await refresh(true);UI.page='account';toast('Đăng ký và đăng nhập thành công.');}else{toast('Đã gửi email xác minh. Hãy mở email rồi quay lại website.');UI.authTab='login';}render();}}catch(err){toast(err.message,'error');}}
 else if(e.target.id==='checkinForm'){e.preventDefault();const nonce=String(new FormData(e.target).get('nonce')||'').trim();UI.modal=null;render();await execute('mq_checkin_qr',{p_nonce:nonce},'Check-in thành công.');}});
 window.addEventListener('storage',e=>{if(e.key===storeKey&&UI.mode==='demo'){demo=seedDemo();render();}});
 try{const bc=new BroadcastChannel('mq-demo');bc.onmessage=e=>{if(e.data?.type==='updated'&&UI.mode==='demo'){demo=seedDemo();render();}};}catch{}
 setInterval(()=>{if(UI.mode==='cloud'&&getSession()&&!document.hidden)refresh(true);},15000);
-if(hasCloudConfig()){UI.mode='cloud';if(getSession())refresh(true).catch(()=>{render();});else render();}else{persist();render();}
+if(hasCloudConfig()){
+ UI.mode='cloud';
+ let confirmed=false;
+ try{confirmed=await consumeAuthRedirect();}catch(err){toast(err.message||'Liên kết xác minh email không hợp lệ.','error');}
+ if(getSession()) {
+   UI.page=confirmed?'account':'home';
+   await refresh(true);
+   if(confirmed)toast('Email đã được xác minh và đăng nhập thành công.');
+ } else render();
+}else{persist();render();}
