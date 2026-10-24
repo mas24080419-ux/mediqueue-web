@@ -9,12 +9,12 @@ try {
 } catch { /* config is optional for GitHub Pages demo */ }
 
 export const hasCloudConfig = () => !!config;
-const SS_KEY = 'mq_web_session_v1';
+const SS_KEY = 'mq_web_session_v2';
 let session = null;
 try { session = JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch { session = null; }
-function save(s) { session = s; if (s) sessionStorage.setItem(SS_KEY, JSON.stringify(s)); else sessionStorage.removeItem(SS_KEY); }
+function save(s) { session = s ? {...s, expires_at:s.expires_at || Math.floor(Date.now()/1000) + Number(s.expires_in || 3600)} : null; if(session) sessionStorage.setItem(SS_KEY, JSON.stringify(session)); else sessionStorage.removeItem(SS_KEY); }
 export const getSession = () => session;
-function headers(accessToken, more={}) { return { apikey:config.key, Authorization:`Bearer ${accessToken || config.key}`, 'Content-Type':'application/json', ...more }; }
+function headers(accessToken, more={}) { return { apikey:config.key, ...(accessToken?{Authorization:`Bearer ${accessToken}`}:{ }), 'Content-Type':'application/json', ...more }; }
 async function request(url, options={}) {
   const response = await fetch(url, options);
   const body = await response.text();
@@ -25,7 +25,7 @@ async function request(url, options={}) {
 function checked() { if(!config) throw new Error('Chưa có cấu hình Supabase cho website.'); }
 export async function signIn(email,password) {
   checked(); const result = await request(`${config.url}/auth/v1/token?grant_type=password`, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
-  save(result); return result;
+  if(!result?.access_token || !result?.refresh_token || !result?.user?.id) throw new Error('Phiên xác thực không hợp lệ.'); save(result); return getSession();
 }
 export async function signUp(email,password) {
   checked(); return request(`${config.url}/auth/v1/signup`, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
@@ -36,8 +36,11 @@ export async function signOut() {
 }
 async function getToken() {
   checked(); if(!session?.access_token) throw new Error('Vui lòng đăng nhập.');
-  if (session.expires_at && Date.now()/1000 > session.expires_at-75) {
-    const s=await request(`${config.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:headers(),body:JSON.stringify({refresh_token:session.refresh_token})}); save(s);
+  if (!session.refresh_token) throw new Error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
+  if (!session.expires_at || Date.now()/1000 > session.expires_at-75) {
+    try { const s=await request(`${config.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:headers(),body:JSON.stringify({refresh_token:session.refresh_token})});
+      if(!s?.access_token || !s?.refresh_token) throw new Error('Không thể làm mới phiên.'); save(s);
+    } catch(err) { save(null); throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'); }
   }
   return session.access_token;
 }
