@@ -15,7 +15,7 @@ assert.match(html,/Tài khoản/); // Public deployment opens in cloud login mod
 const nav=async page=>{const target={matches:()=>false,closest:(sel)=>sel==='[data-page]'?{dataset:{page}}:null};await handlers.click({target});};
 const act=async (action,attrs={})=>{const target={closest:(sel)=>sel==='[data-action]'?{dataset:{action,...attrs}}:null,matches:()=>false};await handlers.click({target});};
 await nav('account');await act('toggle-cloud');await nav('home');
-assert.match(html,/Chào mừng trở lại/);assert.match(html,/Khám tổng quát/);assert.match(html,/MediQueue/);
+assert.match(html,/Xin chào! Hôm nay/);assert.match(html,/Chọn chuyên khoa/);assert.match(html,/MediQueue/);
 await nav('reception');assert.doesNotMatch(html,/Danh sách lượt khám/); // Patient portal never opens reception
 await nav('book');assert.match(html,/Đăng ký lấy số/);
 await handlers.submit({preventDefault(){},target:{id:'bookingForm',data:{patientName:'Người Demo',department:'GENERAL'}}});

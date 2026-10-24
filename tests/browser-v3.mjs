@@ -60,7 +60,7 @@ try{
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
  await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('invalid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('alert').filter({hasText:'Email hoặc mật khẩu không đúng'}).waitFor();
- await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('valid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('heading',{name:'Chào mừng trở lại 👋'}).waitFor();
+ await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('valid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
  results.push({scenario:'Login error + successful mock login',status:'PASS'});await c.close();
 }finally{await fs.writeFile(path.join(out,'results.json'),JSON.stringify({kind:'MOCK browser integration, NOT live Auth E2E',results,failures},null,2));await browser.close();server.close();}
 assert.deepEqual(failures,[]);console.log(`V3 browser UI PASS: ${results.length} scenarios. Mock API only; live E2E remains separate.`);
