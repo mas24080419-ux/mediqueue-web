@@ -47,7 +47,7 @@ Backend vẫn dùng profile patient/staff/admin để tương thích; chức dan
 | Cross-user RLS | PASS Dev SQL | authenticated UID không có ownership không đọc phiếu |
 | Admin role không grant, grant thiếu MFA | PASS Dev SQL | bị từ chối |
 | Admin grant + AAL2 | PASS Dev SQL | aggregate không patient_name; không tạo tài khoản MFA thực |
-| Browser responsive 1440/1280/1024/768/390/360 | PENDING CI | tests/browser-v3.mjs, mock API, ảnh ghi rõ MOCK |
+| Browser responsive 1440/1280/1024/768/390/360 | PASS CI: 68 kịch bản | 11 nhóm tài khoản × 6 viewport + multi-assignment + mock login; không phải live Auth |
 | Authenticated browser E2E với Supabase thật | BLOCKED | chưa có patient session và staff/admin thử được cấp đúng quyền |
 | GitHub Pages V3 | CHỜ PHÊ DUYỆT | chỉ branch/PR, chưa merge main hoặc publish V3 |
 
@@ -65,3 +65,14 @@ Không có ERROR trong lần kiểm tra sau migration. Còn WARN Leaked Password
 3. Browser E2E live: confirmation email, login/logout/refresh, hai phiên độc lập, hai phòng đồng thời, API JWT trái quyền, thu hồi/hết ca khi đang mở.
 4. Tích hợp MFA UI/enrollment và quản trị phân công có audit/re-auth trước khi cho admin vận hành từ website; hiện admin fail closed nếu phiên chưa AAL2.
 5. Các phân hệ LIS/PACS/dược/BHYT, toàn lịch sử thống kê, quản lý ca và chỉnh sửa grant chưa có API/UI hoàn chỉnh. Không coi đây là HIS sản xuất.
+
+## CI và ảnh kiểm chứng
+
+- Mã tích hợp đã PASS: `caba8702f83f1152b796d393be98069cee19ae5d`.
+- Workflow không triển khai: https://github.com/mas24080419-ux/mediqueue-web/actions/runs/40112419796
+- Kết quả 68 PASS, 0 FAIL; artifact `v3-ui-evidence-mock` gồm ảnh 3 cổng ở 1440/390px và `results.json`.
+- Kiểm thử có 6 viewport: 1440, 1280, 1024, 768, 390, 360. Không ghi nhận pageerror/tràn ngang trong các kịch bản đã chạy. Có kiểm tra drawer/Escape và collapse desktop.
+- Lỗi bộ test đã sửa: locator accessibility không thể tìm nút collapse cố ý ẩn trên mobile; thay bằng kiểm tra DOM sidebar và tương tác drawer thật. Ảnh mobile cần chờ kết thúc chuyển động trước khi chụp.
+- Lỗi tích hợp đã sửa: tiếp đón trước đây còn lọc theo profile.department_code cũ; nay dùng assignment hiện hành, có browser test chuyển bác sĩ GENERAL sang tiếp đón INTERNAL.
+- Nhánh `integration/premium-sidebar-v3`, PR https://github.com/mas24080419-ux/mediqueue-web/pull/1 . Chưa merge main; GitHub Pages V3 chưa triển khai.
+- Trạng thái tổng thể PARTIAL: còn E2E Supabase thật, tài khoản từng chức danh, MFA admin thực và kiểm thử hai phiên đồng thời.

@@ -46,12 +46,12 @@ try{
    if(job==='admin')assert.equal(await page.getByText(ticket.patient_name,{exact:true}).count(),0);
    assert.equal(await page.locator('[data-role],#roleList').count(),0,'no arbitrary role switch');
    const dims=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert.ok(dims.scroll<=dims.width+2,JSON.stringify(dims));
-   if(width<=900){const open=page.getByRole('button',{name:'Mở menu',exact:true});await open.click();assert.equal(await open.getAttribute('aria-expanded'),'true');await page.keyboard.press('Escape');assert.equal(await open.getAttribute('aria-expanded'),'false');}
+   if(width<=900){const open=page.getByRole('button',{name:'Mở menu',exact:true});await open.click();assert.equal(await open.getAttribute('aria-expanded'),'true');await page.waitForFunction(()=>document.querySelector('#mq-drawer').getBoundingClientRect().x>=-1);await page.keyboard.press('Escape');assert.equal(await open.getAttribute('aria-expanded'),'false');}
    else {const toggle=page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true});await toggle.click();assert.ok(await page.locator('body').evaluate(b=>b.classList.contains('mq-sidebar-collapsed')));await toggle.click();}
    assert.deepEqual(errors,[]);
    if(['patient','doctor','admin'].includes(job)&&[1440,390].includes(width)){
-    if(width===390)await page.getByRole('button',{name:'Mở menu',exact:true}).click();
-    await page.screenshot({path:path.join(out,`${job}-${width}-MOCK.png`),fullPage:true});
+    if(width===390){await page.getByRole('button',{name:'Mở menu',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#mq-drawer').getBoundingClientRect().x>=-1);}
+    await page.screenshot({path:path.join(out,`${job}-${width}-MOCK.png`),fullPage:true,animations:'disabled'});
    }
    results.push({job,width,status:'PASS',evidence:'mock API / browser UI'});console.log('PASS UI',job,width);
   }catch(e){failures.push({job,width,error:e.message});await page.screenshot({path:path.join(out,`FAIL-${job}-${width}.png`),fullPage:true});console.error('FAIL UI',job,width,e.message);throw e;}
