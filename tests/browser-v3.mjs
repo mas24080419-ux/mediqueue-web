@@ -34,7 +34,7 @@ try{
  for(const job of jobs)for(const width of [1440,1280,1024,768,390,360]){
   const context=await browser.newContext({viewport:{width,height:960}});await mock(context,job);
   await context.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
-  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await context.newPage();page.setDefaultTimeout(5000);page.setDefaultNavigationTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
    const file=job==='patient'?'index.html':job==='admin'?'admin.html':'staff.html';
    await page.goto('http://127.0.0.1:4173/'+file);await page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true}).waitFor();
@@ -53,8 +53,8 @@ try{
     if(width===390)await page.getByRole('button',{name:'Mở menu',exact:true}).click();
     await page.screenshot({path:path.join(out,`${job}-${width}-MOCK.png`),fullPage:true});
    }
-   results.push({job,width,status:'PASS',evidence:'mock API / browser UI'});
-  }catch(e){failures.push({job,width,error:e.message});await page.screenshot({path:path.join(out,`FAIL-${job}-${width}.png`),fullPage:true});}
+   results.push({job,width,status:'PASS',evidence:'mock API / browser UI'});console.log('PASS UI',job,width);
+  }catch(e){failures.push({job,width,error:e.message});await page.screenshot({path:path.join(out,`FAIL-${job}-${width}.png`),fullPage:true});console.error('FAIL UI',job,width,e.message);throw e;}
   await context.close();
  }
  // Login error, loading state and successful role routing via mock Auth.
