@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+const state = new Map();
+globalThis.sessionStorage={getItem:k=>state.get(k)||null,setItem:(k,v)=>state.set(k,v),removeItem:k=>state.delete(k)};
+const page='https://mas24080419-ux.github.io/mediqueue-web/';
+const location={origin:'https://mas24080419-ux.github.io',pathname:'/mediqueue-web/',search:'',hash:''};
+let removed=false;let calls=[];
+globalThis.window={location,history:{replaceState:(a,b,c)=>{removed=true; assert.equal(c,'/mediqueue-web/');location.hash='';}}};
+const json=(o)=>({ok:true,status:200,text:async()=>JSON.stringify(o)});
+globalThis.fetch=async (u,opts={})=>{calls.push({u:String(u),opts});
+ if(String(u).includes('/auth/v1/signup'))return json({user:{id:'test-id'}});
+ if(String(u).includes('/auth/v1/user')){assert.equal(opts.headers.Authorization,'Bearer verified-callback-token');return json({id:'confirmed-user-id',email:'test@example.invalid'});}
+ return json({});
+};
+const client=await import('../supabase-client.js');
+await client.signUp('test@example.invalid','placeholder');
+const signup=calls.find(x=>x.u.includes('/auth/v1/signup'));
+assert.ok(signup.u.includes('redirect_to='));
+assert.equal(new URL(signup.u).searchParams.get('redirect_to'),page);
+location.hash='#access_token=verified-callback-token&refresh_token=refresh-secret&expires_in=3600&type=signup';
+assert.equal(await client.consumeAuthRedirect(),true);
+assert.equal(client.getSession().user.id,'confirmed-user-id');
+assert.equal(removed,true);
+assert.equal(location.hash,'');
+const saved=state.get('mq_web_session_v2');
+assert.ok(!saved.includes('password'));
+console.log('Auth callback test PASS: explicit redirect, verify token with Supabase, clear fragment, persist valid session');
