@@ -24,10 +24,11 @@ jobs:
           node --check app.js
           node --check supabase-client.js
           node tests/smoke.mjs
+          node tests/cloud-contract.mjs
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html styles.css app.js supabase-client.js .nojekyll _site/
+          cp index.html styles.css app.js supabase-client.js config.js .nojekyll _site/
           cp assets/logo.svg _site/assets/logo.svg
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
