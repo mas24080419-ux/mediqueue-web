@@ -25,7 +25,7 @@ await nav('staff');assert.doesNotMatch(html,/Quản lý phòng khám/);
 await act('demo-staff');assert.doesNotMatch(html,/Quản lý phòng khám/);
 await nav('board');assert.match(html,/Bảng theo dõi khu chờ/);
 assert.doesNotMatch(html,/Minh Anh/);
-await nav('account');assert.match(html,/Cổng nhân viên/);
+await nav('account');assert.match(html,/Sang cổng nhân viên/);
 const ownerBefore=JSON.parse(mem.get('mediqueue_web_demo_v1')).tickets.find(t=>t.patient_id==='demo-me'&&t.queue_number===11);
 await nav('track');await act('cancel',{id:String(ownerBefore.id)});
 assert.match(html,/Hủy phiếu/);await act('confirm-modal');
