@@ -25,6 +25,8 @@ jobs:
           node --check supabase-client.js
           node tests/smoke.mjs
           node tests/cloud-contract.mjs
+          node tests/auth-callback.mjs
+          node tests/live-anon.mjs
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
