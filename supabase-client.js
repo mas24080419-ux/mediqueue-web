@@ -28,7 +28,37 @@ export async function signIn(email,password) {
   if(!result?.access_token || !result?.refresh_token || !result?.user?.id) throw new Error('Phiên xác thực không hợp lệ.'); save(result); return getSession();
 }
 export async function signUp(email,password) {
-  checked(); return request(`${config.url}/auth/v1/signup`, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
+  checked();
+  // GitHub Pages URL; Supabase Auth must also allowlist this exact URL.
+  const redirect = typeof window !== 'undefined' && window.location?.origin && window.location?.pathname
+    ? window.location.origin + window.location.pathname : undefined;
+  const endpoint = `${config.url}/auth/v1/signup${redirect ? '?redirect_to=' + encodeURIComponent(redirect) : ''}`;
+  const result = await request(endpoint, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
+  if(result?.access_token && result?.refresh_token && result?.user?.id) save(result);
+  else if(result?.session?.access_token && result.session?.user?.id) save(result.session);
+  return result;
+}
+/** Handle GoTrue email-confirmation implicit redirects; never persist tokens from
+ * the URL until the backend verifies the access token, and clear URL fragments.
+ * Password and confirmation tokens are never logged. */
+export async function consumeAuthRedirect() {
+  if(!config || typeof window === 'undefined' || !window.location) return false;
+  const hash=window.location.hash || '';
+  if(!hash || (!hash.includes('access_token=') && !hash.includes('error=')))return false;
+  const params=new URLSearchParams(hash.startsWith('#')?hash.substring(1):hash);
+  const access=params.get('access_token'),refresh=params.get('refresh_token');
+  try {
+    if(params.get('error')) throw new Error(params.get('error_description') || 'Xác minh email không thành công.');
+    if(!access || !refresh)throw new Error('Liên kết xác minh không hợp lệ.');
+    const verified=await request(`${config.url}/auth/v1/user`,{headers:headers(access)});
+    if(!verified?.id) throw new Error('Không thể xác thực phiên từ email.');
+    save({access_token:access,refresh_token:refresh,token_type:'bearer',expires_in:Number(params.get('expires_in') || 3600),user:verified});
+    return true;
+  } finally {
+    if(typeof window.history?.replaceState==='function') {
+      window.history.replaceState(null,'',window.location.pathname + window.location.search);
+    }
+  }
 }
 export async function signOut() {
   if (session?.access_token) {try { await request(`${config.url}/auth/v1/logout`,{method:'POST',headers:headers(session.access_token)}); } catch { /* clear local even if network fails */ } }
