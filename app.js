@@ -101,7 +101,7 @@ function board(){
 }
 function reception(){
  if(!isStaff())return title('DÀNH CHO NHÂN VIÊN','Quầy tiếp đón','Vui lòng đăng nhập bằng tài khoản đã được cấp quyền hoặc chuyển vai trò trong chế độ demo.')+'<div class="card card-pad"><button class="btn btn-primary" data-page="account">Đi tới tài khoản</button></div>';
- const access=departments().filter(d=>UI.mode==='demo'||role()==='admin'||d.code===UI.remote?.profile?.department_code);
+ const access=departments();
  if(!access.some(x=>x.code===UI.dept))UI.dept=access[0]?.code||'GENERAL';
  const list=tickets().filter(t=>t.department_code===UI.dept);
  const shown=list.filter(t=>!UI.staffSearch||(label(t)+' '+t.patient_name).toLocaleLowerCase('vi').includes(UI.staffSearch.toLocaleLowerCase('vi'))).sort((a,b)=>a.queue_number-b.queue_number);

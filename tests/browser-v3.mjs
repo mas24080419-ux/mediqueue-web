@@ -57,6 +57,14 @@ try{
   }catch(e){failures.push({job,width,error:e.message});await page.screenshot({path:path.join(out,`FAIL-${job}-${width}.png`),fullPage:true});console.error('FAIL UI',job,width,e.message);throw e;}
   await context.close();
  }
+ // Changing context uses only assignments returned by the server, not the legacy profile department.
+ const multi=await browser.newContext({viewport:{width:1280,height:900}});const mf=await mock(multi,'doctor');
+ mf.access.assignments.push({...mf.access.assignments[0],id:'second-grant',job_title:'reception',department_code:'INTERNAL',room_id:null});
+ await multi.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
+ const mp=await multi.newPage();mp.setDefaultTimeout(5000);await mp.goto('http://127.0.0.1:4173/staff.html');await mp.locator('#assignmentPicker').selectOption('second-grant');
+ await mp.getByRole('button',{name:'Nghiệp vụ khoa/phòng',exact:true}).click();await mp.getByRole('button',{name:'Tiếp đón bệnh nhân',exact:true}).click();
+ assert.equal(await mp.locator('#staffDept option').count(),1);assert.equal(await mp.locator('#staffDept').inputValue(),'INTERNAL');
+ results.push({scenario:'Server-issued multi-assignment context',status:'PASS'});await multi.close();
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
  await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('invalid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('alert').filter({hasText:'Email hoặc mật khẩu không đúng'}).waitFor();
