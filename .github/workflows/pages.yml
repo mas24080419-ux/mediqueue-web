@@ -24,14 +24,14 @@ jobs:
           node --check app.js
           node --check supabase-client.js
           node tests/smoke.mjs
-          node tests/staff-portal.mjs
           node tests/cloud-contract.mjs
           node tests/auth-callback.mjs
+          node tests/session-races.mjs
           node tests/live-anon.mjs
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html staff.html styles.css app.js supabase-client.js config.js .nojekyll _site/
+          cp index.html styles.css app.js supabase-client.js config.js .nojekyll _site/
           cp assets/logo.svg _site/assets/logo.svg
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -42,3 +42,4 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+

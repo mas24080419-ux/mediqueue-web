@@ -11,8 +11,10 @@ try {
 export const hasCloudConfig = () => !!config;
 const SS_KEY = 'mq_web_session_v2';
 let session = null;
+let sessionVersion = 0;
+let refreshInFlight = null;
 try { session = JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch { session = null; }
-function save(s) { session = s ? {...s, expires_at:s.expires_at || Math.floor(Date.now()/1000) + Number(s.expires_in || 3600)} : null; if(session) sessionStorage.setItem(SS_KEY, JSON.stringify(session)); else sessionStorage.removeItem(SS_KEY); }
+function save(s) { sessionVersion++; session = s ? {...s, expires_at:s.expires_at || Math.floor(Date.now()/1000) + Number(s.expires_in || 3600)} : null; if(session) sessionStorage.setItem(SS_KEY, JSON.stringify(session)); else sessionStorage.removeItem(SS_KEY); }
 export const getSession = () => session;
 function headers(accessToken, more={}) { return { apikey:config.key, ...(accessToken?{Authorization:`Bearer ${accessToken}`}:{ }), 'Content-Type':'application/json', ...more }; }
 async function request(url, options={}) {
@@ -61,16 +63,34 @@ export async function consumeAuthRedirect() {
   }
 }
 export async function signOut() {
-  if (session?.access_token) {try { await request(`${config.url}/auth/v1/logout`,{method:'POST',headers:headers(session.access_token)}); } catch { /* clear local even if network fails */ } }
+  const token=session?.access_token;
+  // Invalidate locally before waiting for the network; an old refresh must never restore it.
   save(null);
+  if(token) { try { await request(`${config.url}/auth/v1/logout`,{method:'POST',headers:headers(token)}); } catch { /* local session is already cleared */ } }
 }
 async function getToken() {
   checked(); if(!session?.access_token) throw new Error('Vui lòng đăng nhập.');
   if (!session.refresh_token) throw new Error('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
   if (!session.expires_at || Date.now()/1000 > session.expires_at-75) {
-    try { const s=await request(`${config.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:headers(),body:JSON.stringify({refresh_token:session.refresh_token})});
-      if(!s?.access_token || !s?.refresh_token) throw new Error('Không thể làm mới phiên.'); save(s);
-    } catch(err) { save(null); throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'); }
+    const version=sessionVersion;
+    if(!refreshInFlight || refreshInFlight.version!==version) {
+      const refreshToken=session.refresh_token;
+      const task={version};
+      task.promise=(async()=>{
+        try {
+          const s=await request(`${config.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:headers(),body:JSON.stringify({refresh_token:refreshToken})});
+          if(sessionVersion!==version) throw new Error('Phiên đăng nhập đã thay đổi.');
+          if(!s?.access_token || !s?.refresh_token || !s?.user?.id) throw new Error('Không thể làm mới phiên.');
+          save(s);
+          return s.access_token;
+        } catch(err) {
+          if(sessionVersion===version) save(null);
+          throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        } finally { if(refreshInFlight===task) refreshInFlight=null; }
+      })();
+      refreshInFlight=task;
+    }
+    return refreshInFlight.promise;
   }
   return session.access_token;
 }
@@ -95,3 +115,4 @@ export async function loadCloudData() {
   ]);
   return {profile,departments,rooms,live,roomLive,tickets};
 }
+
