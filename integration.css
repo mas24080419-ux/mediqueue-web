@@ -13,3 +13,7 @@
 .mq-qr-code-text{font:700 11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all;text-align:center;color:#24525b;margin:12px 0}
 .mq-qr-unavailable{margin:14px 0;padding:12px;border:1px solid #e1e8ea;border-radius:10px;font-size:12px;color:#526a74}
 @media(max-width:450px){.mq-qr-ticket{grid-template-columns:100px minmax(0,1fr);gap:11px;padding:10px}.mq-qr-thumbnail{width:100px;min-height:100px;padding:4px}.mq-qr-thumbnail svg{width:90px}.mq-qr-copy strong{font-size:12px}.mq-qr-copy p{font-size:10px}.mq-qr-buttons .btn{font-size:10px;padding:7px 9px}}
+
+.mq-qr-scan-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mq-qr-scan-video{width:100%;max-height:290px;object-fit:cover;border-radius:12px;background:#102f3a;margin-top:10px}
+.mq-qr-scan-video[hidden]{display:none}
