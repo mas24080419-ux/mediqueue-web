@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+const store=new Map();
+globalThis.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+globalThis.window={location:{origin:'https://mas24080419-ux.github.io',pathname:'/mediqueue-web/index.html',search:'',hash:''}};
+const calls=[];
+globalThis.fetch=async(url,opts={})=>{calls.push({url:String(url),opts});if(String(url).endsWith('/auth/v1/user'))return{ok:true,status:200,text:async()=>JSON.stringify({id:'valid-user-id'})};return{ok:true,status:200,text:async()=>JSON.stringify({})};};
+const auth=await import('../supabase-client.js');
+await auth.requestPasswordReset('hello@example.invalid');
+const recover=calls.find(x=>x.url.includes('/auth/v1/recover'));
+assert.ok(recover);
+assert.equal(new URL(recover.url).searchParams.get('redirect_to'),'https://mas24080419-ux.github.io/mediqueue-web/index.html');
+assert.deepEqual(JSON.parse(recover.opts.body),{email:'hello@example.invalid'});
+store.set('mq_web_session_v2',JSON.stringify({access_token:'valid-jwt',refresh_token:'refresh-token',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'valid-user-id'}}));
+// Reload module to read persisted signed-in session.
+const other=await import('../supabase-client.js?password-recovery');
+await assert.rejects(other.updateOwnPassword('short'),/8 ký tự/);
+await other.updateOwnPassword('valid-password-1234');
+const reset=calls.find(x=>x.url.endsWith('/auth/v1/user'));
+assert.equal(reset.opts.method,'PUT');
+assert.equal(reset.opts.headers.Authorization,'Bearer valid-jwt');
+assert.equal(JSON.parse(reset.opts.body).password,'valid-password-1234');
+assert.ok(!JSON.stringify(calls).includes('service_role'));
+console.log('PASS: password recovery redirect and JWT-scoped password update.');
