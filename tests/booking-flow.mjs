@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {BOOKING_STEPS,createBookingState,departmentAvailable,validateBookingStep,bookingView} from '../booking-flow.js';
+import {BOOKING_STEPS,createBookingState,departmentAvailable,validateBookingStep,bookingView,ticketJourney} from '../booking-flow.js';
 const context={
  profile:{display_name:'Nguyễn Văn A'},
  departments:[{code:'GENERAL',title:'Khám tổng quát'},{code:'INTERNAL',title:'Nội tổng hợp'}],
@@ -36,4 +36,24 @@ state.patientName='<img src=x onerror=alert(1)>';
 const safe=bookingView(state,context);
 assert.doesNotMatch(safe,/<img src=x/,'patient input must not be injected into HTML');
 assert.match(safe,/&lt;img/);
+
+// Real ticket timeline must never invent completed steps, medical services or appointments.
+const pre=ticketJourney({id:41,status:'WAITING',created_at:'2026-10-25T00:00:00Z'});
+assert.match(pre,/Check-in tại quầy/);
+assert.match(pre,/Có QR không có nghĩa là đã check-in/);
+assert.equal((pre.match(/aria-current="step"/g)||[]).length,1);
+const checked=ticketJourney({id:41,status:'WAITING',checked_in_at:'2026-10-25T01:00:00Z',room_id:'GENERAL_101'});
+assert.match(checked,/phòng được phân công/);
+const called=ticketJourney({id:41,status:'CALLED',checked_in_at:'2026-10-25T01:00:00Z',room_id:'GENERAL_101'});
+assert.match(called,/Số của bạn đã được gọi/);
+const serving=ticketJourney({id:41,status:'SERVING',checked_in_at:'2026-10-25T01:00:00Z',room_id:'GENERAL_101'});
+assert.match(serving,/đang được phục vụ/);
+const done=ticketJourney({id:41,status:'COMPLETED',checked_in_at:'2026-10-25T01:00:00Z',room_id:'GENERAL_101'});
+assert.match(done,/lượt khám đã hoàn tất/i);
+assert.equal((done.match(/class="mq-visit-phase is-done"/g)||[]).length,6);
+const skipped=ticketJourney({id:41,status:'SKIPPED'});
+assert.doesNotMatch(skipped,/aria-current="step"/);
+assert.match(skipped,/không tự phân biệt hủy phiếu và bỏ lượt/);
+for(const html of [pre,checked,called,serving,done,skipped])assert.equal((html.match(/<li /g)||[]).length,6);
+
 console.log('PASS: four-step hospital reception wizard, truthful backend scope, closed-department denial and input sanitization.');
