@@ -156,15 +156,15 @@ try{
   await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
   const p=await ctx.newPage();await p.goto('http://127.0.0.1:4173/staff.html');
   await p.locator('.mq-side-inner').waitFor();
-  await p.locator('[data-page="reception"]').first().click();
+  await p.getByRole('button',{name:'Nghiệp vụ khoa/phòng',exact:true}).click();
+  await p.getByRole('button',{name:'Tiếp đón bệnh nhân',exact:true}).click();
   const checkin=p.locator('[data-action="checkin-form"]').first();
-  if(await checkin.count()){
-   await checkin.click();
-   assert.equal(await p.locator('#checkinForm input[name=nonce]').count(),1);
-   assert.equal(await p.locator('[data-action="scan-ticket-camera"]').count(),1);
-   assert.equal(await p.locator('#qr-scan-video').count(),1);
-   results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
-  }
+  assert.equal(await checkin.count(),1,'reception check-in action must exist');
+  await checkin.click();
+  assert.equal(await p.locator('#checkinForm input[name=nonce]').count(),1);
+  assert.equal(await p.locator('[data-action="scan-ticket-camera"]').count(),1);
+  assert.equal(await p.locator('#qr-scan-video').count(),1);
+  results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
   await ctx.close();
  }
  // Login error, loading state and successful role routing via mock Auth.
