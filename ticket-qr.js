@@ -1,6 +1,6 @@
 // QR codes are generated locally. Payload is ONLY the server-issued UUID nonce.
 // The code grants no access to records; only authorized hospital RPC may check it in.
-import qrcode from './vendor/qrcode.mjs';
+import qrcode from './vendor/qrcode.js';
 
 export const UUID_PATTERN=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function qrToken(nonce){
