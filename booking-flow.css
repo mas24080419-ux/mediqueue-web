@@ -16,3 +16,23 @@
 @media(max-width:1180px){.mq-book-layout{grid-template-columns:minmax(0,1fr)}.mq-book-aside{position:static}.mq-book-assist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}.mq-book-assist>.mq-book-eyebrow,.mq-book-assist>h2,.mq-book-support{grid-column:1/-1}}
 @media(max-width:700px){.mq-book-panel{padding:21px 17px;border-radius:19px}.mq-book-steps{gap:3px}.mq-book-steps li{justify-content:center;padding:9px 3px}.mq-book-steps li span{width:27px;height:27px}.mq-book-steps li b{display:none}.mq-book-assist{display:block}.mq-book-layout{gap:20px}.mq-book-intro h1{font-size:30px}.mq-book-department{padding:12px}.mq-book-dept-state{font-size:10px;max-width:70px;text-align:right}.mq-book-review dd{max-width:57%}}
 @media(prefers-reduced-motion:reduce){.mq-book-department{transition:none}}
+
+/* V5 appointment option — visually distinct from the same-day queue. */
+.mq-v5-choice{appearance:none;width:100%;display:flex;flex-direction:column;gap:5px;text-align:left;border:1px solid #dbe8ea;background:#fff;border-radius:13px;padding:15px;min-width:0;color:#234852;cursor:pointer;font:inherit}
+.mq-v5-choice strong{font-size:13px}.mq-v5-choice span{font-size:11px;line-height:1.55;color:#617e85}
+.mq-v5-choice.is-on{border:2px solid #149c91;background:#f0faf7}
+.mq-v5-choice:disabled{opacity:.6;cursor:not-allowed;background:#f3f5f6}
+.mq-v5-section{border-top:1px solid #e5eeef;padding-top:15px}
+.mq-v5-field{display:flex;flex-direction:column;gap:7px;margin:12px 0}
+.mq-v5-field strong{color:#244c58;font-size:12px}
+.mq-v5-field select{min-height:44px;padding:10px 12px;width:100%;border:1px solid #d3e4e5;border-radius:10px;color:#25424b;background:#fff;font:inherit;font-size:12px}
+.mq-v5-field select:focus-visible{outline:3px solid #83d0d1;outline-offset:2px}
+.mq-v5-enrol{margin-top:14px;border:1px solid #f2daa8;border-radius:12px;padding:13px;background:#fffbf0}
+.mq-v5-enrol strong{display:block;font-size:12px}.mq-v5-enrol p,.mq-v5-enrol small{display:block;color:#6c654f;line-height:1.6;font-size:11px;margin:7px 0}
+.mq-v5-list{margin-bottom:18px;border:1px solid #e0eaed;border-radius:17px;padding:17px;background:#fbfcfd}
+.mq-v5-list h2{margin:0 0 9px;font-size:17px;color:#234650}
+.mq-v5-appointment{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0;padding:13px;border-radius:12px;border:1px solid #d9e7e9;background:#fff}
+.mq-v5-appointment div{display:grid;gap:5px;min-width:0}.mq-v5-appointment b{font-size:13px}
+.mq-v5-appointment span,.mq-v5-appointment small{font-size:11px;color:#637986}
+.mq-v5-appointment strong{font-size:13px;color:#167e77}
+@media(max-width:600px){.mq-v5-appointment{align-items:flex-start;flex-direction:column}.mq-v5-appointment button{align-self:flex-start}}
