@@ -127,6 +127,46 @@ try{
    results.push({scenario:'Patient cannot enter '+restricted,status:'PASS'});
    await ctx.close();
  }
+ // Every booked ticket exposes an actual locally generated QR. Can enlarge and download.
+ for(const width of [1280,390]){
+  const ctx=await browser.newContext({viewport:{width,height:920},acceptDownloads:true});
+  await mock(ctx,'patient');
+  await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
+  const page=await ctx.newPage();page.setDefaultTimeout(6000);await page.goto('http://127.0.0.1:4173/index.html');
+  await page.locator('.preview-card[data-page="track"]').click();
+  const ticketCard=page.locator('.ticket-card').first();
+  await ticketCard.locator('.mq-qr-thumbnail svg').waitFor();
+  assert.equal(await ticketCard.locator('.mq-qr-thumbnail svg').count(),1);
+  assert.ok((await ticketCard.locator('.mq-qr-thumbnail svg').evaluate(el=>el.getBoundingClientRect().width))>=85,'QR too small for mobile');
+  assert.ok(!(await ticketCard.innerText()).includes(ticket.patient_name),'QR UI must not expose other patients');
+  await ticketCard.getByRole('button',{name:'Xem QR'}).click();
+  await page.locator('.mq-qr-modal-image svg').waitFor();
+  assert.ok((await page.locator('.mq-qr-modal-image svg').evaluate(el=>el.getBoundingClientRect().width))>=175,'modal QR not scannable');
+  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Tải QR về máy (PNG)'}).click()]);
+  assert.match(download.suggestedFilename(),/^MediQueue-.*-QR\.png$/);
+  assert.ok(!(await page.locator('body').innerText()).toLowerCase().includes('demo'));
+  results.push({scenario:'Patient per-ticket QR visible, enlarged and downloaded',width,status:'PASS'});
+  await page.screenshot({path:path.join(out,'ticket-qr-'+width+'-MOCK.png'),fullPage:true,animations:'disabled'});
+  await ctx.close();
+ }
+ // Reception scanning keeps manual entry available when camera/BarcodeDetector is unsupported.
+ {
+  const ctx=await browser.newContext({viewport:{width:1280,height:920}});
+  await mock(ctx,'reception');
+  await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
+  const p=await ctx.newPage();await p.goto('http://127.0.0.1:4173/staff.html');
+  await p.locator('.mq-side-inner').waitFor();
+  await p.getByRole('button',{name:'Nghiệp vụ khoa/phòng',exact:true}).click();
+  await p.getByRole('button',{name:'Tiếp đón bệnh nhân',exact:true}).click();
+  const checkin=p.locator('[data-action="checkin-form"]').first();
+  assert.equal(await checkin.count(),1,'reception check-in action must exist');
+  await checkin.click();
+  assert.equal(await p.locator('#checkinForm input[name=nonce]').count(),1);
+  assert.equal(await p.locator('[data-action="scan-ticket-camera"]').count(),1);
+  assert.equal(await p.locator('#qr-scan-video').count(),1);
+  results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
+  await ctx.close();
+ }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
  await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();await assertCardFooterLayout(p,'front');

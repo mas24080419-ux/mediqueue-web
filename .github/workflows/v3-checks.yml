@@ -21,6 +21,9 @@ jobs:
         run: |
           node --check auth-v4.js
           node --check app.js
+          node --check ticket-qr.js
+          node --check vendor/qrcode.js
+          node tests/ticket-qr.mjs
           node tests/auth-v4.mjs
           node tests/password-recovery.mjs
           node --check premium-sidebar.js
