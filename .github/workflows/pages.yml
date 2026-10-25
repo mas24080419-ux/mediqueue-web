@@ -22,6 +22,7 @@ jobs:
       - name: Validate JavaScript and simulated user flows
         run: |
           node --check app.js
+          node tests/css-integrity.mjs
           node --check supabase-client.js
           node tests/smoke.mjs
           node tests/staff-portal.mjs
