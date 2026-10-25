@@ -72,7 +72,8 @@ try{
      assert.ok(visual.marginLeft>=8,'desktop floating inset missing: '+JSON.stringify(visual));
      assert.notEqual(visual.shadow,'none','desktop card must have subtle elevation');
      assert.ok(visual.left>=0&&visual.right<=visual.viewport+2,'desktop sidebar overflow: '+JSON.stringify(visual));
-     assert.match(visual.activeBackground,/linear-gradient/,'active menu highlight is missing');
+     if(job==='unassigned')assert.equal(await page.locator('.mq-nav [data-page="reception"],.mq-nav [data-page="staff"]').count(),0,'unassigned staff must not have clinical navigation');
+     else assert.match(visual.activeBackground,/linear-gradient/,'active menu highlight is missing');
      assert.equal(visual.avatarRadius,'50%','desktop profile avatar must be circular');
    }else{
      const visual=await page.locator('.work-side').evaluate(el=>({position:getComputedStyle(el).position,borderRadius:getComputedStyle(el).borderTopLeftRadius}));
