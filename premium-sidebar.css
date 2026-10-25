@@ -51,8 +51,66 @@ body.workspace,body.preview-body{background:var(--mq-bg)!important;color:var(--m
 .preview-body.mq-patient-page>.work-side{position:fixed;top:74px;left:0;width:278px;height:calc(100vh - 74px)}
 .mq-patient-page .mq-patient-preview-cta{border:1px solid #d7e9e5;background:#f5fbf9;padding:20px 22px;border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 0}
 .mq-patient-page .mq-patient-preview-cta strong{display:block;color:#086f73;font-size:15px}.mq-patient-page .mq-patient-preview-cta p{font-size:12px;color:#789093;line-height:1.6}
+/* Desktop Premium Sidebar — inspired by CodeWithAV, integrated with existing RBAC navigation.
+   Scope: >=901px only. Mobile drawer CSS/behavior remains unchanged.
+   The workspace keeps its own auth, routes, assignment and profile state. */
+@media(min-width:901px){
+ .workspace .work-side{
+   --mq-side-accent:#087e84;--mq-side-tint:#ecf9f7;--mq-side-shadow:0 18px 46px rgba(28,73,80,.12);
+   margin:12px 8px 16px 13px;
+   top:86px;
+   height:calc(100vh - 102px);
+   min-height:420px;
+   width:auto;
+   border:1px solid #e7eff0;
+   border-radius:25px;
+   box-shadow:var(--mq-side-shadow);
+ }
+ .workspace .mq-side-inner{padding:20px 14px 16px}
+ .workspace .mq-side-summary{margin:1px 2px 21px;padding:14px 11px;min-height:72px;border-radius:17px;background:linear-gradient(145deg,#f5fbfa,#eef8f7);border:1px solid #e5efed}
+ .workspace .mq-dept-icon{width:41px;height:41px;border-radius:13px;box-shadow:0 8px 17px -4px rgba(6,130,130,.31)}
+ .workspace .mq-side-summary-text strong{font-size:13px;letter-spacing:-.15px}
+ .workspace .mq-section-label{margin:13px 0 11px;padding:0 14px;font-size:10px}
+ .workspace .mq-nav{gap:6px}
+ .workspace .mq-nav .mq-item,.workspace .mq-group-trigger{
+   min-height:48px;padding:12px 13px;gap:13px;border-radius:14px;
+   font-size:13px;font-weight:650;color:#516a76;
+   transition:background-color .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease;
+ }
+ .workspace .mq-item svg,.workspace .mq-group-trigger svg{width:19px;height:19px}
+ .workspace .mq-nav .mq-item:hover:not(.is-active):not([aria-current="page"]),.workspace .mq-group-trigger:hover{
+   background:var(--mq-side-tint);color:var(--mq-side-accent);transform:translateX(2px);
+ }
+ .workspace .mq-nav .mq-item.is-active,.workspace .mq-nav .mq-item[aria-current="page"]{
+   background:linear-gradient(135deg,#087b84,#14a9a2);color:white;
+   box-shadow:0 11px 22px rgba(8,126,132,.22);font-weight:750;
+ }
+ .workspace .mq-nav .mq-item.is-active::before,.workspace .mq-nav .mq-item[aria-current="page"]::before{
+   left:-12px;top:12px;bottom:12px;width:4px;background:var(--mq-side-accent);border-radius:5px;
+ }
+ .workspace .mq-group-trigger[aria-expanded="true"]{background:#f0f9f7;color:#087d80}
+ .workspace .mq-caret{margin-left:auto;flex:none;transition:transform .25s ease}
+ .workspace .mq-subnav{margin:6px 2px 10px 21px;padding-left:11px;border-left:1px solid #d9eae7;gap:4px}
+ .workspace .mq-subnav .mq-item{min-height:39px;padding:9px 11px;font-size:12px;border-radius:11px}
+ .workspace .mq-side-bottom{margin-top:auto;padding-top:15px;border-top:1px solid #edf1f3;gap:8px}
+ .workspace .mq-user-button{
+   padding:11px 10px;border:1px solid #e9edef;border-radius:17px;background:#fcfdfd;
+   box-shadow:0 4px 12px rgba(28,67,76,.025);
+   transition:background-color .2s ease,box-shadow .2s ease,border-color .2s ease;
+ }
+ .workspace .mq-user-button:hover{background:#f5fbfa;border-color:#cfe9e6;box-shadow:0 9px 22px rgba(28,67,76,.07)}
+ .workspace .mq-avatar{width:40px;height:40px;border-radius:50%;font-size:12px}
+ .workspace .mq-user-txt strong{font-size:12px}
+ .workspace .mq-user-txt small{font-size:10px}
+ .workspace .mq-toggle-desktop{top:20px;border-radius:50%;box-shadow:0 7px 18px rgba(18,80,87,.13)}
+ .workspace .mq-profile-menu{border-radius:16px;box-shadow:0 16px 38px rgba(23,69,79,.12)}
+ .admin-workspace .work-side{--mq-side-accent:#8262be;--mq-side-tint:#f7f2fc;--mq-side-shadow:0 18px 46px rgba(95,67,147,.11)}
+ .admin-workspace .mq-nav .mq-item.is-active,.admin-workspace .mq-nav .mq-item[aria-current="page"]{background:linear-gradient(135deg,#7763bd,#a27dd7);box-shadow:0 11px 22px rgba(126,91,186,.22)}
+ .admin-workspace .mq-nav .mq-item.is-active::before,.admin-workspace .mq-nav .mq-item[aria-current="page"]::before{background:#9574cf}
+ .admin-workspace .mq-nav .mq-item:hover:not(.is-active):not([aria-current="page"]),.admin-workspace .mq-group-trigger:hover{color:#7958b5}
+}
 /* Desktop collapse */
-@media(min-width:901px){body.mq-sidebar-collapsed .work-shell{grid-template-columns:82px minmax(0,1fr)!important}body.mq-sidebar-collapsed .work-side,body.mq-sidebar-collapsed .mq-patient-page>.work-side{width:82px}body.mq-sidebar-collapsed .mq-side-inner{padding:18px 10px 12px}body.mq-sidebar-collapsed .mq-side-summary{padding:10px;justify-content:center;margin:0 0 18px}body.mq-sidebar-collapsed .mq-side-summary-text,body.mq-sidebar-collapsed .mq-section-label,body.mq-sidebar-collapsed .mq-nav-text,body.mq-sidebar-collapsed .mq-caret,body.mq-sidebar-collapsed .mq-tag,body.mq-sidebar-collapsed .mq-user-txt,body.mq-sidebar-collapsed .mq-preview-note,body.mq-sidebar-collapsed .mq-roles,body.mq-sidebar-collapsed .mq-subnav,body.mq-sidebar-collapsed .mq-notice{display:none!important}body.mq-sidebar-collapsed .mq-item,body.mq-sidebar-collapsed .mq-group-trigger{justify-content:center;padding:12px;height:44px}body.mq-sidebar-collapsed .mq-item.is-active:before{left:-10px}body.mq-sidebar-collapsed .mq-user-button{justify-content:center;padding:8px 4px}body.mq-sidebar-collapsed .mq-user-button>svg{display:none}body.mq-sidebar-collapsed .mq-profile-menu{position:absolute;width:220px;left:76px;bottom:10px;z-index:45}body.mq-sidebar-collapsed.mq-patient-page .preview-main{margin-left:82px}body.mq-sidebar-collapsed.mq-patient-page>.work-side{width:82px}}
+@media(min-width:901px){body.mq-sidebar-collapsed .work-shell{grid-template-columns:82px minmax(0,1fr)!important}body.mq-sidebar-collapsed .work-side,body.mq-sidebar-collapsed .mq-patient-page>.work-side{width:auto}body.mq-sidebar-collapsed .mq-side-inner{padding:18px 8px 12px}body.mq-sidebar-collapsed .mq-side-summary{padding:4px;justify-content:center;margin:0 0 18px}body.mq-sidebar-collapsed .mq-side-summary-text,body.mq-sidebar-collapsed .mq-section-label,body.mq-sidebar-collapsed .mq-nav-text,body.mq-sidebar-collapsed .mq-caret,body.mq-sidebar-collapsed .mq-tag,body.mq-sidebar-collapsed .mq-user-txt,body.mq-sidebar-collapsed .mq-preview-note,body.mq-sidebar-collapsed .mq-roles,body.mq-sidebar-collapsed .mq-subnav,body.mq-sidebar-collapsed .mq-notice{display:none!important}body.mq-sidebar-collapsed .mq-item,body.mq-sidebar-collapsed .mq-group-trigger{justify-content:center;padding:12px;height:44px}body.mq-sidebar-collapsed .mq-item.is-active:before{left:-10px}body.mq-sidebar-collapsed .mq-user-button{justify-content:center;padding:8px 4px}body.mq-sidebar-collapsed .mq-user-button>svg{display:none}body.mq-sidebar-collapsed .mq-profile-menu{position:absolute;width:220px;left:76px;bottom:10px;z-index:45}body.mq-sidebar-collapsed.mq-patient-page .preview-main{margin-left:82px}body.mq-sidebar-collapsed.mq-patient-page>.work-side{width:82px}}
 @media(max-width:1180px) and (min-width:901px){.work-shell{grid-template-columns:245px minmax(0,1fr)!important}.work-side{width:auto}.work-content{padding:25px 24px!important}.mq-patient-page .preview-main{margin-left:245px!important;padding:30px 27px!important}.mq-patient-page>.work-side{width:245px!important}}
 @media(max-width:900px){.work-shell{display:block!important}.work-side,.mq-patient-page>.work-side{position:fixed!important;z-index:80!important;top:0!important;left:0!important;height:100dvh!important;width:min(310px,86vw)!important;max-width:310px!important;display:block!important;transform:translateX(-107%);transition:transform .22s ease;box-shadow:18px 0 40px rgba(17,48,52,.16)!important;border-right:1px solid #dfebed!important}.mq-drawer-open .work-side,.mq-drawer-open.mq-patient-page>.work-side{transform:translateX(0)}.mq-side-inner{padding-top:16px}.mq-sidebar-toggle.mq-toggle-desktop{display:none}.mq-mobile-trigger{display:grid!important;place-items:center;flex-shrink:0}.mq-drawer-overlay{display:block;position:fixed;inset:0;background:rgba(11,36,43,.44);z-index:75;opacity:0;pointer-events:none;transition:opacity .2s;border:0;cursor:pointer}.mq-drawer-open .mq-drawer-overlay{opacity:1;pointer-events:auto}.mq-drawer-close{margin-left:auto}.mq-drawer-head{display:flex;align-items:center;justify-content:flex-end;padding:4px 4px 8px}.work-header{justify-content:flex-start!important;gap:12px;padding:0 17px!important}.work-header-right{margin-left:auto}.preview-body.mq-patient-page .preview-main{margin:0!important;padding:28px 18px 45px!important}.preview-body.mq-patient-page .preview-header{padding:0 15px!important}.mq-side-bottom{padding-bottom:7px}.mq-roles .role-list{max-height:250px}}
 @media(min-width:901px){.mq-drawer-head{display:none}}
