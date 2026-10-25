@@ -38,7 +38,7 @@ jobs:
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html staff.html admin.html auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css ticket-qr.js app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
+          cp index.html staff.html admin.html scan.html scan.js scan.css auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css ticket-qr.js app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
           cp assets/logo.svg assets/mark.svg _site/assets/
           cp -R vendor _site/vendor
       - name: Configure GitHub Pages
