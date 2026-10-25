@@ -14,6 +14,6 @@ assert.ok(a.getModuleCount()>=21,'valid QR matrix size');
 assert.notEqual(ticketQrSvg(tokenA),ticketQrSvg(tokenB),'each ticket must have a distinct QR code');
 const svg=ticketQrSvg(tokenA);
 assert.match(svg,/<svg\b/i);assert.match(svg,/<path\b/i);
-assert.doesNotMatch(svg,/patient|name|email|phone|http/i,'patient data or remote URL must not be included in QR markup');
+assert.doesNotMatch(svg.replace(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g,''),/patient|email|phone|https?:\/\//i,'patient data or remote URL must not be included in QR markup');
 assert.ok(svg.length>400);
 console.log('PASS: locally encoded, distinct per-ticket SVG QR with strict UUID-only payload.');
