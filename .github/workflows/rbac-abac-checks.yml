@@ -1,0 +1,29 @@
+name: RBAC ABAC proposal checks (no deployment)
+on:
+  pull_request:
+    paths:
+      - 'security/rbac-abac/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/rbac-abac-checks.yml'
+  push:
+    branches: [architecture/rbac-abac-review]
+permissions:
+  contents: read
+jobs:
+  postgres-authorization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+        working-directory: security/rbac-abac
+      - name: Synthetic local PostgreSQL tests, no cloud credentials
+        run: node security/rbac-abac/tests/rbac-abac.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rbac-abac-local-evidence
+          path: security/rbac-abac/tests/evidence/

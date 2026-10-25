@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-25",
+  "project": "buolfdpdfnbmruecrtum",
+  "result": [
+    {
+      "status": "PASS",
+      "environment": "live Dev SQL negative authorization only; nonexistent actor; no fixture users or patient data mutated; not browser/Auth E2E",
+      "checks": [
+        "cross_user_ticket_rls",
+        "profile_rls",
+        "assignment_rls",
+        "metadata_cannot_grant",
+        "self_promotion_denied",
+        "hospital_admin_denied",
+        "anon_tickets_denied",
+        "anon_rpc_denied"
+      ]
+    }
+  ]
+}

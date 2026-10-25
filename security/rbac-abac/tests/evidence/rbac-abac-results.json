@@ -1,0 +1,285 @@
+{
+  "environment": "local PGlite PostgreSQL; synthetic Auth/session fixtures; NOT Supabase Auth/browser E2E",
+  "results": [
+    {
+      "name": "schema-only baseline reconstructed from live catalog; compiles",
+      "status": "PASS"
+    },
+    {
+      "name": "proposed additive migration compiles",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task read",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task call",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task START",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task FINISH",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task SKIP",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor assigned task recall",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor denied checkin despite injected task if applicable",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor denied pause despite injected task if applicable",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor denied clinical.read despite injected task if applicable",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor denied grant despite injected task if applicable",
+      "status": "PASS"
+    },
+    {
+      "name": "doctor denied unknown despite injected task if applicable",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-facility denied",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-department denied",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-room denied",
+      "status": "PASS"
+    },
+    {
+      "name": "room absent for room-specific assignment denied",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong department-room tuple denied",
+      "status": "PASS"
+    },
+    {
+      "name": "task removed denies immediately",
+      "status": "PASS"
+    },
+    {
+      "name": "expired shift",
+      "status": "PASS"
+    },
+    {
+      "name": "future shift",
+      "status": "PASS"
+    },
+    {
+      "name": "revoked assignment",
+      "status": "PASS"
+    },
+    {
+      "name": "inactive facility denied",
+      "status": "PASS"
+    },
+    {
+      "name": "MFA aal1 denied internal data",
+      "status": "PASS"
+    },
+    {
+      "name": "forged user_metadata does not grant task",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous auth denied",
+      "status": "PASS"
+    },
+    {
+      "name": "unverified email denied",
+      "status": "PASS"
+    },
+    {
+      "name": "missing session denied",
+      "status": "PASS"
+    },
+    {
+      "name": "expired session denied",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-user session denied",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard authenticated wrapper positive",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard cross-user assignment denied and audit persists",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling reception",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling nurse",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling department_lead",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling laboratory",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling imaging",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling pharmacy",
+      "status": "PASS"
+    },
+    {
+      "name": "role ceiling cashier",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard binds selected assignment; cannot borrow another assignment",
+      "status": "PASS"
+    },
+    {
+      "name": "department lead independent of hospital admin",
+      "status": "PASS"
+    },
+    {
+      "name": "hospital admin not clinical or queue operator",
+      "status": "PASS"
+    },
+    {
+      "name": "patient verified self profile visible",
+      "status": "PASS"
+    },
+    {
+      "name": "patient B pending link cannot read A",
+      "status": "PASS"
+    },
+    {
+      "name": "verified representative only explicitly granted scope",
+      "status": "PASS"
+    },
+    {
+      "name": "revoked link",
+      "status": "PASS"
+    },
+    {
+      "name": "expired link",
+      "status": "PASS"
+    },
+    {
+      "name": "inactive patient",
+      "status": "PASS"
+    },
+    {
+      "name": "policy task/scope mutations audited without grant payload",
+      "status": "PASS"
+    },
+    {
+      "name": "link changes audited without evidence payload",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct patient_records denied",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct patient_links denied",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct assignment_tasks denied",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct access_decisions denied",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct identity_link_audit denied",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated direct policy_change_audit denied",
+      "status": "PASS"
+    },
+    {
+      "name": "self verification blocked by constraint",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous public API execute denied",
+      "status": "PASS"
+    },
+    {
+      "name": "existing cross-user ticket RLS denies",
+      "status": "PASS"
+    },
+    {
+      "name": "patient A sees own nonempty ticket via RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "patient B cannot see A nonempty ticket via RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "RLS denies former-patient staff historical ticket without assignment",
+      "status": "PASS"
+    },
+    {
+      "name": "baseline gap reproduced: former patient staff can use owner wait RPC",
+      "status": "PASS"
+    },
+    {
+      "name": "baseline gap reproduced: former patient staff can cancel historical ticket",
+      "status": "PASS"
+    },
+    {
+      "name": "proposed fix: staff denied legacy mq_my_wait_info",
+      "status": "PASS"
+    },
+    {
+      "name": "proposed fix: staff denied legacy mq_cancel_my_ticket",
+      "status": "PASS"
+    },
+    {
+      "name": "patched wait RPC retains patient functionality",
+      "status": "PASS"
+    },
+    {
+      "name": "patched cancel RPC retains patient functionality",
+      "status": "PASS"
+    },
+    {
+      "name": "existing queue workflow regression after proposed migrations; synthetic local transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "legacy signatures unchanged",
+      "status": "PASS"
+    }
+  ]
+}
