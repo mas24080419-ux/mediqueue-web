@@ -24,6 +24,7 @@ jobs:
           node --check auth-v4.js
           node --check app.js
           node tests/auth-v4.mjs
+          node tests/password-recovery.mjs
           node --check supabase-client.js
           node tests/smoke.mjs
           node tests/staff-portal.mjs
