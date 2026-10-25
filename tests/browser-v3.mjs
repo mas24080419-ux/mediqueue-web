@@ -189,6 +189,25 @@ try{
   results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
   await ctx.close();
  }
+
+ // QR camera link must open a first-party page without disclosing patient data.
+ for(const good of [true,false]){
+   const ctx=await browser.newContext({viewport:{width:390,height:844}});
+   const pg=await ctx.newPage();
+   await pg.goto('http://127.0.0.1:4173/scan.html#code='+(good?ticket.qr_nonce:'invalid'));
+   await pg.locator(good?'#scan-status.ok':'#scan-status.bad').waitFor();
+   if(good){
+     const href=await pg.locator('#scan-staff').getAttribute('href');
+     assert.ok(href.endsWith('staff.html#checkin='+ticket.qr_nonce),'scan landing must hand off only validated UUID');
+     assert.equal(await pg.locator('#scan-copy').isVisible(),true);
+     assert.equal(await pg.getByText(ticket.patient_name,{exact:true}).count(),0,'QR page must never expose patient name');
+     assert.match(await pg.locator('#scan-status').innerText(),/Chưa xác minh trạng thái/);
+   }else{
+     assert.equal(await pg.locator('#scan-copy').isVisible(),false,'invalid QR must not allow copying');
+   }
+   results.push({scenario:good?'First-party QR landing opens':'QR landing rejects invalid token',status:'PASS'});
+   await ctx.close();
+ }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
  await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();await assertCardFooterLayout(p,'front');
