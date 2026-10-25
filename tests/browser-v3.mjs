@@ -65,10 +65,47 @@ try{
  await mp.getByRole('button',{name:'Nghiệp vụ khoa/phòng',exact:true}).click();await mp.getByRole('button',{name:'Tiếp đón bệnh nhân',exact:true}).click();
  assert.equal(await mp.locator('#staffDept option').count(),1);assert.equal(await mp.locator('#staffDept').inputValue(),'INTERNAL');
  results.push({scenario:'Server-issued multi-assignment context',status:'PASS'});await multi.close();
+ // V4 signed-out gateway: secure, responsive and no self-registration for internal accounts.
+ for(const width of [1440,390])for(const guestPortal of ['index.html','staff.html','admin.html']){
+  const guestContext=await browser.newContext({viewport:{width,height:900}});
+  await mock(guestContext,'patient');
+  const guest=await guestContext.newPage();const guestErrors=[];guest.on('pageerror',e=>guestErrors.push(e.message));
+  await guest.goto('http://127.0.0.1:4173/'+guestPortal);
+  await guest.locator('#mqn-login-form').waitFor();
+  assert.ok(await guest.locator('.mqn-roles [aria-current="page"]').count()===1);
+  assert.equal(await guest.locator('.mq-side-inner').count(),0,'no privileged workspace before authentication');
+  assert.equal(await guest.locator('#mqn-register-form').count(),0,'no alternative legacy form');
+  assert.ok(!(await guest.locator('body').innerText()).toLowerCase().includes('demo'),'no trial labels visible');
+  const size=await guest.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
+  assert.ok(size.scroll<=size.width+2,'guest horizontal overflow '+JSON.stringify(size));
+  if(guestPortal==='index.html'){
+    await guest.getByRole('button',{name:'Chuyển sang đăng ký'}).click();
+    assert.ok(await guest.locator('#mqn-card').evaluate(n=>n.classList.contains('flipped')));
+    assert.equal(await guest.locator('#mqn-face-back').getAttribute('aria-hidden'),'false');
+  }else{
+    assert.equal(await guest.getByRole('button',{name:'Chuyển sang đăng ký'}).count(),0,'internal account creation forbidden');
+  }
+  assert.deepEqual(guestErrors,[]);
+  await guest.screenshot({path:path.join(out,'v4-guest-'+guestPortal+'-'+width+'.png'),fullPage:true,animations:'disabled'});
+  results.push({scenario:'V4 signed-out '+guestPortal,width,status:'PASS'});
+  await guestContext.close();
+ }
+ // A valid patient password cannot authorize the staff or hospital administrator portal.
+ for(const restricted of ['staff.html','admin.html']){
+   const ctx=await browser.newContext({viewport:{width:1280,height:900}});
+   await mock(ctx,'patient');const pg=await ctx.newPage();await pg.goto('http://127.0.0.1:4173/'+restricted);
+   await pg.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');
+   await pg.locator('#mqn-face-front input[name=password]').fill('valid-fixture-password');
+   await pg.locator('#mqn-login-form button[type=submit]').click();
+   await pg.locator('.mqn-error').filter({hasText:'không có quyền'}).waitFor();
+   assert.equal(await pg.locator('.mq-side-inner').count(),0);
+   results.push({scenario:'Patient cannot enter '+restricted,status:'PASS'});
+   await ctx.close();
+ }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
- await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('invalid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('alert').filter({hasText:'Email hoặc mật khẩu không đúng'}).waitFor();
- await p.getByRole('textbox',{name:'Email',exact:true}).fill('qa@example.invalid');await p.locator('input[name=password]').fill('valid-fixture-password');await p.locator('#authForm button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('.mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('valid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
  results.push({scenario:'Login error + successful mock login',status:'PASS'});await c.close();
 }finally{await fs.writeFile(path.join(out,'results.json'),JSON.stringify({kind:'MOCK browser integration, NOT live Auth E2E',results,failures},null,2));await browser.close();server.close();}
 assert.deepEqual(failures,[]);console.log(`V3 browser UI PASS: ${results.length} scenarios. Mock API only; live E2E remains separate.`);
