@@ -59,10 +59,30 @@ try{
    if(job==='reception')assert.equal(await page.getByRole('button',{name:'Gọi lượt tiếp theo',exact:true}).count(),0);
    if(job==='admin')assert.equal(await page.getByText(ticket.patient_name,{exact:true}).count(),0);
    assert.equal(await page.locator('[data-role],#roleList').count(),0,'no arbitrary role switch');
+   // Premium design is scoped to desktop: rounded inset card, active accent and profile avatar.
+   // Mobile preserves existing fixed drawer behavior and auth-scoped navigation.
+   if(width>900){
+     const visual=await page.evaluate(()=>{
+       const side=document.querySelector('.work-side'),active=document.querySelector('.mq-nav .mq-item[aria-current="page"]'),avatar=document.querySelector('.mq-avatar');
+       const sideRect=side.getBoundingClientRect(),styles=getComputedStyle(side);
+       return {position:styles.position,borderRadius:parseFloat(styles.borderTopLeftRadius),shadow:styles.boxShadow,marginLeft:parseFloat(styles.marginLeft),left:sideRect.left,right:sideRect.right,viewport:innerWidth,activeBackground:active?getComputedStyle(active).backgroundImage:'',avatarRadius:getComputedStyle(avatar).borderRadius};
+     });
+     assert.equal(visual.position,'sticky','premium sidebar must remain sticky on desktop');
+     assert.ok(visual.borderRadius>=20,'desktop card corners missing: '+JSON.stringify(visual));
+     assert.ok(visual.marginLeft>=8,'desktop floating inset missing: '+JSON.stringify(visual));
+     assert.notEqual(visual.shadow,'none','desktop card must have subtle elevation');
+     assert.ok(visual.left>=0&&visual.right<=visual.viewport+2,'desktop sidebar overflow: '+JSON.stringify(visual));
+     assert.match(visual.activeBackground,/linear-gradient/,'active menu highlight is missing');
+     assert.equal(visual.avatarRadius,'50%','desktop profile avatar must be circular');
+   }else{
+     const visual=await page.locator('.work-side').evaluate(el=>({position:getComputedStyle(el).position,borderRadius:getComputedStyle(el).borderTopLeftRadius}));
+     assert.equal(visual.position,'fixed','mobile drawer should stay fixed');
+   }
+
    assert.ok(!(await page.locator('body').innerText()).toLowerCase().includes('demo'),'no mock-mode label on authenticated workspace');
    const dims=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert.ok(dims.scroll<=dims.width+2,JSON.stringify(dims));
    if(width<=900){const open=page.getByRole('button',{name:'Mở menu',exact:true});await open.click();assert.equal(await open.getAttribute('aria-expanded'),'true');await page.waitForFunction(()=>document.querySelector('#mq-drawer').getBoundingClientRect().x>=-1);await page.keyboard.press('Escape');assert.equal(await open.getAttribute('aria-expanded'),'false');}
-   else {const toggle=page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true});await toggle.click();assert.ok(await page.locator('body').evaluate(b=>b.classList.contains('mq-sidebar-collapsed')));await toggle.click();}
+   else {const toggle=page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true});await toggle.click();assert.ok(await page.locator('body').evaluate(b=>b.classList.contains('mq-sidebar-collapsed')));const collapsed=await page.locator('.work-side').evaluate(el=>({right:el.getBoundingClientRect().right,left:el.getBoundingClientRect().left,w:el.getBoundingClientRect().width,viewport:innerWidth}));assert.ok(collapsed.w>=54&&collapsed.w<=82&&collapsed.left>=0&&collapsed.right<=collapsed.viewport+1,'collapsed sidebar overflow: '+JSON.stringify(collapsed));await toggle.click();}
    assert.deepEqual(errors,[]);
    if(['patient','doctor','admin'].includes(job)&&[1440,390].includes(width)){
     if(width===390){await page.getByRole('button',{name:'Mở menu',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#mq-drawer').getBoundingClientRect().x>=-1);}
