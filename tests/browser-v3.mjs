@@ -208,6 +208,31 @@ try{
    results.push({scenario:good?'First-party QR landing opens':'QR landing rejects invalid token',status:'PASS'});
    await ctx.close();
  }
+
+ // Scanned phone QR can prefill an authorized receptionist form, without auto-checking in.
+ for(const [job,allowed] of [['reception',true],['doctor',false]]){
+   const ctx=await browser.newContext({viewport:{width:1280,height:900}});
+   await mock(ctx,job);
+   await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({
+     access_token:'mock-only-access',refresh_token:'mock-only-refresh',
+     expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}
+   })),{uid});
+   let checkins=0;
+   ctx.on('request',req=>{if(req.url().includes('/rpc/mq_checkin_qr'))checkins++;});
+   const pg=await ctx.newPage();
+   await pg.goto('http://127.0.0.1:4173/staff.html#checkin='+ticket.qr_nonce);
+   await pg.locator('.mq-side-inner').waitFor();
+   if(allowed){
+     await pg.locator('#checkinForm input[name=nonce]').waitFor();
+     assert.equal(await pg.locator('#checkinForm input[name=nonce]').inputValue(),ticket.qr_nonce);
+   }else{
+     await pg.waitForTimeout(250);
+     assert.equal(await pg.locator('#checkinForm').count(),0,'doctor must not enter reception without assigned permission');
+   }
+   assert.equal(checkins,0,'just scanning must never automatically check a patient in');
+   results.push({scenario:allowed?'Reception prefilled from QR link':'No unauthorized deep-link checkin',status:'PASS'});
+   await ctx.close();
+ }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
  await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();await assertCardFooterLayout(p,'front');
