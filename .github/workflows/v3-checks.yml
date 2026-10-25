@@ -21,6 +21,8 @@ jobs:
         run: |
           node --check auth-v4.js
           node --check app.js
+          node --check booking-flow.js
+          node tests/booking-flow.mjs
           node --check ticket-qr.js
           node --check vendor/qrcode.js
           node tests/ticket-qr.mjs

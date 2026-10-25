@@ -148,6 +148,45 @@ try{
    results.push({scenario:'Patient cannot enter '+restricted,status:'PASS'});
    await ctx.close();
  }
+
+ // Real four-step patient booking: validate each screen and call issuance RPC once.
+ for(const width of [1280,390]){
+  const ctx=await browser.newContext({viewport:{width,height:920}});
+  await mock(ctx,'patient');
+  await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({
+   access_token:'mock-only-access',refresh_token:'mock-only-refresh',
+   expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}
+  })),{uid});
+  let issued=0;ctx.on('request',r=>{if(r.url().includes('/rpc/mq_issue_ticket'))issued++;});
+  const pg=await ctx.newPage();pg.setDefaultTimeout(8000);
+  await pg.goto('http://127.0.0.1:4173/index.html');
+  await pg.locator('.preview-card[data-page="book"]').click();
+  await pg.getByRole('heading',{name:'Đăng ký khám bệnh'}).waitFor();
+  assert.equal(await pg.locator('.mq-book-steps li').count(),4);
+  assert.equal(await pg.locator('#bookingForm').count(),0,'form should only submit from final review');
+  assert.equal(await pg.locator('#bookingPatientName').inputValue(),'UI TEST · patient');
+  await pg.locator('#bookingPatientName').fill('Nguyễn Văn An');
+  await pg.locator('[data-booking-next]').click();
+  await pg.getByRole('heading',{name:'Chọn chuyên khoa khám'}).waitFor();
+  await pg.locator('[data-booking-department="GENERAL"]').click();
+  assert.equal(await pg.locator('[data-booking-department="GENERAL"]').getAttribute('aria-pressed'),'true');
+  await pg.locator('[data-booking-next]').click();
+  await pg.getByRole('heading',{name:'Ngày và cách tiếp nhận'}).waitFor();
+  assert.ok((await pg.locator('.mq-book-layout').innerText()).includes('Chưa mở đăng ký trực tuyến'),'future appointments must not be sold as available');
+  await pg.locator('[data-booking-next]').click();
+  await pg.getByRole('heading',{name:'Kiểm tra và xác nhận'}).waitFor();
+  assert.equal(await pg.locator('#bookingForm button[type=submit]').isDisabled(),true);
+  await pg.locator('#bookingAccept').check();
+  assert.equal(await pg.locator('#bookingForm button[type=submit]').isDisabled(),false);
+  const dim=await pg.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+  assert.ok(dim.scroll<=dim.width+2,'Booking flow horizontal overflow '+JSON.stringify(dim));
+  await pg.screenshot({path:path.join(out,'booking-review-'+width+'-MOCK.png'),fullPage:true,animations:'disabled'});
+  await pg.locator('#bookingForm button[type=submit]').click();
+  await pg.getByRole('heading',{name:'Theo dõi lượt khám'}).waitFor();
+  assert.equal(issued,1,'only one backend ticket issuance allowed');
+  results.push({scenario:'Four-step patient queue registration: issued exactly once',width,status:'PASS'});
+  await ctx.close();
+ }
  // Every booked ticket exposes an actual locally generated QR. Can enlarge and download.
  for(const width of [1280,390]){
   const ctx=await browser.newContext({viewport:{width,height:920},acceptDownloads:true});
