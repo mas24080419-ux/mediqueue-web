@@ -23,6 +23,9 @@ jobs:
         run: |
           node --check auth-v4.js
           node --check app.js
+          node --check ticket-qr.js
+          node --check vendor/qrcode.mjs
+          node tests/ticket-qr.mjs
           node tests/auth-v4.mjs
           node tests/password-recovery.mjs
           node --check supabase-client.js
@@ -35,8 +38,9 @@ jobs:
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html staff.html admin.html auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
+          cp index.html staff.html admin.html auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css ticket-qr.js app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
           cp assets/logo.svg assets/mark.svg _site/assets/
+          cp -R vendor _site/vendor
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website
