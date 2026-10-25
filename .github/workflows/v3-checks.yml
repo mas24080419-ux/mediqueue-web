@@ -19,7 +19,10 @@ jobs:
           node-version: '24'
       - name: Syntax and regression tests
         run: |
+          node --check auth-v4.js
           node --check app.js
+          node tests/auth-v4.mjs
+          node tests/password-recovery.mjs
           node --check premium-sidebar.js
           node --check supabase-client.js
           node tests/smoke.mjs

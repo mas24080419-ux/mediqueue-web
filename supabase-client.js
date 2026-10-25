@@ -29,13 +29,13 @@ export async function signIn(email,password) {
   checked(); const result = await request(`${config.url}/auth/v1/token?grant_type=password`, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
   if(!result?.access_token || !result?.refresh_token || !result?.user?.id) throw new Error('Phiên xác thực không hợp lệ.'); save(result); return getSession();
 }
-export async function signUp(email,password) {
+export async function signUp(email,password,displayName='') {
   checked();
   // GitHub Pages URL; Supabase Auth must also allowlist this exact URL.
   const redirect = typeof window !== 'undefined' && window.location?.origin && window.location?.pathname
     ? window.location.origin + window.location.pathname : undefined;
   const endpoint = `${config.url}/auth/v1/signup${redirect ? '?redirect_to=' + encodeURIComponent(redirect) : ''}`;
-  const result = await request(endpoint, {method:'POST',headers:headers(),body:JSON.stringify({email,password})});
+  const result = await request(endpoint, {method:'POST',headers:headers(),body:JSON.stringify({email,password,...(displayName?{data:{display_name:String(displayName).trim().slice(0,100)}}:{})})});
   if(result?.access_token && result?.refresh_token && result?.user?.id) save(result);
   else if(result?.session?.access_token && result.session?.user?.id) save(result.session);
   return result;
@@ -120,4 +120,21 @@ export async function loadCloudData() {
   select('mq_tickets',`select=*&${patient?`patient_id=eq.${encodeURIComponent(s.user.id)}`:`department_code=in.(${codes.map(encodeURIComponent).join(',')})`}&order=created_at.desc&limit=120`)
  ]);
  return {profile,access,departments,rooms,live,roomLive,tickets};
+}
+
+/** Public Auth endpoints. The callback is validated before accepting tokens.
+ * These functions do not grant or change hospital roles. */
+export async function requestPasswordReset(email) {
+ checked();
+ const redirect=window.location.origin+window.location.pathname;
+ await request(config.url+'/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),{
+  method:'POST',headers:headers(),body:JSON.stringify({email:String(email).trim()})
+ });
+}
+export async function updateOwnPassword(password) {
+ const token=await getToken();
+ if(typeof password!=='string'||password.length<8)throw new Error('Mật khẩu mới phải có ít nhất 8 ký tự.');
+ const user=await request(config.url+'/auth/v1/user',{method:'PUT',headers:headers(token),body:JSON.stringify({password})});
+ if(!user?.id)throw new Error('Không thể xác nhận việc cập nhật mật khẩu.');
+ return user;
 }
