@@ -1,3 +1,4 @@
+import {v5Validate,v5MethodChoices,v5AppointmentFields,v5Review} from './appointment-v5-ui.js';
 /* MediQueue patient booking journey.
  * Render only features supported by the current RPC: same-day department queue.
  * No simulated doctors, fees, patient-proxy permissions, or unavailable timeslots.
@@ -7,6 +8,7 @@ export const BOOKING_STEPS=['Người khám','Chuyên khoa','Hình thức tiếp
 export const createBookingState=(profile={})=>({
  step:0,
  patientName:profile.display_name&&profile.display_name!=='Người dùng'?String(profile.display_name):'',
+ mode:'ticket',patientRecordId:'',serviceId:'',slotId:'',
  department:'',
  accepted:false
 });
@@ -23,6 +25,7 @@ export function validateBookingStep(state,context){
  }
  if(state.step>=1&&(!state.department||!departmentAvailable(state.department,context.departments,context.rooms,context.live)))
   return 'Vui lòng chọn chuyên khoa đang tiếp nhận. Một số khoa hoặc phòng có thể đã tạm dừng.';
+ if(state.step>=2&&state.mode==='appointment'){const reason=v5Validate(state,context.v5);if(reason)return reason;}
  if(state.step===3&&!state.accepted)return 'Bạn cần xác nhận đã hiểu đây là phiếu lấy số trong ngày, không phải lịch hẹn theo giờ.';
  return '';
 }
@@ -30,12 +33,6 @@ function stepper(state){
  return '<ol class="mq-book-steps">'+BOOKING_STEPS.map((name,i)=>
   '<li class="'+(i===state.step?'is-current':i<state.step?'is-done':'')+'" aria-current="'+(i===state.step?'step':'false')+'"><span>'+(i<state.step?'✓':i+1)+'</span><b>'+escape(name)+'</b></li>'
  ).join('')+'</ol>';
-}
-function serviceChoices(){
- return '<section class="mq-book-section"><h2>Hình thức đăng ký</h2><div class="mq-book-choice-grid">'+
-  '<div class="mq-book-choice is-on"><span class="mq-book-radio">✓</span><div><strong>Lấy số khám trong ngày</strong><p>Hệ thống cấp số thứ tự tại chuyên khoa đang tiếp nhận. Giờ khám phụ thuộc hàng chờ.</p><small>Đang hỗ trợ</small></div></div>'+
-  '<div class="mq-book-choice is-off"><span class="mq-book-radio">◷</span><div><strong>Đặt lịch hẹn theo giờ</strong><p>Cần lịch trực bác sĩ, suất hẹn và cơ chế giữ chỗ từ bệnh viện.</p><small>Chưa mở đăng ký trực tuyến</small></div></div>'+
- '</div></section>';
 }
 function patientStep(state,profile){
  return '<section class="mq-book-section"><h2>Ai là người đến khám?</h2><p class="mq-book-help">MediQueue hiện phát hành phiếu cho chính tài khoản đã xác thực.</p>'+
@@ -59,13 +56,15 @@ function specialtyStep(state,context){
 function todayStep(state,context){
  const d=context.departments.find(x=>x.code===state.department);
  const row=context.live.find(x=>x.department_code===state.department);
- return serviceChoices()+'<section class="mq-book-section"><h2>Ngày và cách tiếp nhận</h2>'+
+ if(state.mode==='appointment')return v5MethodChoices(state,context)+v5AppointmentFields(state,context);
+ return v5MethodChoices(state,context)+'<section class="mq-book-section"><h2>Ngày và cách tiếp nhận</h2>'+
  '<div class="mq-book-date"><span class="mq-book-dept-symbol">◷</span><div><strong>Hôm nay · '+escape(context.dateLabel)+'</strong><p>Phiếu khám theo lượt. Chưa có giờ hẹn cố định hoặc cam kết thời điểm được khám.</p><small>Đúng với chức năng cấp số hiện tại</small></div></div>'+
  '<div class="mq-book-facts"><div><span>Chuyên khoa</span><strong>'+escape(d?.title||'—')+'</strong></div><div><span>Số đang chờ</span><strong>'+escape(row?.waiting_count??'Chưa có dữ liệu')+'</strong></div></div>'+
  '<div class="mq-book-inline-note">Bảo hiểm y tế, khám dịch vụ, chi phí và ưu tiên tiếp nhận được nhân viên kiểm tra tại quầy. MediQueue không xác nhận quyền lợi bảo hiểm hoặc thanh toán ở bước này.</div>'+
  '</section>';
 }
 function reviewStep(state,context){
+ if(state.mode==='appointment')return v5Review(state,context);
  const d=context.departments.find(x=>x.code===state.department);
  return '<section class="mq-book-section"><h2>Kiểm tra và xác nhận</h2><p class="mq-book-help">Chỉ tạo phiếu sau khi hệ thống trả về kết quả cấp số thành công.</p>'+
  '<dl class="mq-book-review"><div><dt>Người khám</dt><dd>'+escape(state.patientName.trim())+'</dd></div><div><dt>Chuyên khoa</dt><dd>'+escape(d?.title||'—')+'</dd></div><div><dt>Ngày</dt><dd>'+escape(context.dateLabel)+'</dd></div><div><dt>Loại đăng ký</dt><dd>Lấy số khám trong ngày</dd></div><div><dt>Địa điểm / phòng</dt><dd>Nhân viên sẽ xác nhận khi check-in</dd></div><div><dt>Giờ hẹn / Bác sĩ</dt><dd>Chưa được chỉ định</dd></div></dl>'+
@@ -77,7 +76,7 @@ export function bookingView(state,context){
  const step=state.step;
  const activeName=BOOKING_STEPS[step]||'';
  const body=step===0?patientStep(state,context.profile):step===1?specialtyStep(state,context):step===2?todayStep(state,context):reviewStep(state,context);
- const canNext=step===0?String(state.patientName).trim().length>=2:step===1?departmentAvailable(state.department,context.departments,context.rooms,context.live):true;
+ const canNext=step===0?String(state.patientName).trim().length>=2:step===1?departmentAvailable(state.department,context.departments,context.rooms,context.live):step===2?!v5Validate(state,context.v5):true;
  return '<div class="mq-book-layout"><div class="mq-book-main"><div class="mq-book-intro"><span class="mq-book-eyebrow">MEDIQUEUE · TIẾP NHẬN KHÁM BỆNH</span><h1>Đăng ký khám bệnh</h1><p>Thực hiện từng bước để nhận phiếu khám điện tử, QR check-in và theo dõi lượt khám tại cơ sở.</p></div>'+
  stepper(state)+'<div class="mq-book-panel"><div class="mq-book-kicker">BƯỚC '+(step+1)+' / '+BOOKING_STEPS.length+' · '+escape(activeName)+'</div>'+body+
  '<div class="mq-book-actions">'+(step>0?'<button type="button" class="btn btn-ghost" data-booking-back>Quay lại</button>':'<span></span>')+
