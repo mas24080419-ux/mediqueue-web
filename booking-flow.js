@@ -86,3 +86,38 @@ export function bookingView(state,context){
  [['01','Chọn khoa tiếp nhận','Chỉ các khoa có phòng hoạt động mới được chọn.'],['02','Nhận số thứ tự','Số được backend cấp; không chọn số hoặc phòng thủ công.'],['03','Nhận QR check-in','Mỗi phiếu có một QR riêng để xuất trình tại quầy.'],['04','Đến quầy xác minh','Nhân viên kiểm tra thông tin và phân phòng phù hợp.'],['05','Theo dõi tiến độ','Xem trạng thái chờ, được gọi và hoàn tất.']].map(x=>'<div class="mq-book-guide"><span>'+x[0]+'</span><div><b>'+x[1]+'</b><p>'+x[2]+'</p></div></div>').join('')+
  '<div class="mq-book-support"><strong>Các dịch vụ cần hệ thống bổ sung</strong><p>Đặt trước ngày/giờ, chọn bác sĩ, người phụ thuộc, xác minh BHYT, giá khám và thanh toán hiện chưa có backend tương ứng. Không tự tạo lịch hoặc khoản thu giả.</p></div></div></aside></div>';
 }
+
+/**
+ * A truthful outpatient visit timeline built only from server-authorized ticket
+ * fields already returned by MediQueue-Dev. No appointment, medical record,
+ * physician or insurer status is inferred.
+ */
+export function ticketJourney(ticket={}){
+ const status=String(ticket.status||'');
+ const phases=[
+  ['Đã cấp số',Boolean(ticket.id||ticket.created_at)],
+  ['Check-in tại quầy',Boolean(ticket.checked_in_at)],
+  ['Được phân phòng',Boolean(ticket.room_id)],
+  ['Đã gọi vào phòng',Boolean(ticket.called_at||['CALLED','SERVING','COMPLETED'].includes(status))],
+  ['Đang / đã khám',Boolean(ticket.started_at||['SERVING','COMPLETED'].includes(status))],
+  ['Hoàn tất lượt',Boolean(ticket.completed_at||status==='COMPLETED')]
+ ];
+ const ended=status==='SKIPPED';
+ const current=ended?-1:phases.findIndex(([,done])=>!done);
+ let guidance='Theo dõi trạng thái phiếu và làm theo hướng dẫn của nhân viên tại cơ sở khám.';
+ if(ended)guidance='Phiếu không còn trong hàng chờ. Liên hệ quầy tiếp đón để xác nhận nguyên nhân; hệ thống không tự phân biệt hủy phiếu và bỏ lượt.';
+ else if(status==='COMPLETED')guidance='Lượt khám đã hoàn tất. Các chỉ định xét nghiệm, thanh toán hoặc lĩnh thuốc (nếu có) cần được xác nhận riêng tại bệnh viện.';
+ else if(status==='SERVING')guidance='Lượt khám đang được phục vụ. Vui lòng làm theo hướng dẫn của nhân viên y tế.';
+ else if(status==='CALLED')guidance='Số của bạn đã được gọi. Đến phòng được chỉ định hoặc liên hệ nhân viên nếu cần hỗ trợ.';
+ else if(!ticket.checked_in_at)guidance='Hãy xuất trình mã QR và giấy tờ phù hợp để nhân viên kiểm tra tại quầy. Có QR không có nghĩa là đã check-in.';
+ else if(!ticket.room_id)guidance='Bạn đã check-in. Nhân viên sẽ xác nhận phòng phù hợp trước khi gọi lượt.';
+ else guidance='Bạn đã check-in và có phòng được phân công. Theo dõi bảng gọi số; thời gian và thứ tự có thể thay đổi.';
+ return '<section class="mq-visit-journey" aria-label="Tiến trình phiếu khám">'+
+  '<div class="mq-visit-heading"><strong>Tiến trình phiếu khám</strong><span>Đối chiếu dữ liệu đang có</span></div>'+
+  '<ol class="mq-visit-phases">'+phases.map(([name,done],i)=>{
+   const cls=done?'is-done':i===current?'is-current':'is-upcoming';
+   const caption=done?'Đã ghi nhận':i===current?'Đang chờ xác nhận':'Chưa ghi nhận';
+   return '<li class="mq-visit-phase '+cls+'"'+(i===current?' aria-current="step"':'')+'><span class="mq-visit-phase-index" aria-hidden="true">'+(done?'✓':i+1)+'</span><div><b>'+name+'</b><small>'+caption+'</small></div></li>';
+  }).join('')+'</ol>'+
+  '<p class="mq-visit-guidance"'+(ended?' role="status"':'')+'>'+guidance+'</p></section>';
+}
