@@ -172,7 +172,7 @@ try{
   assert.equal(await pg.locator('[data-booking-department="GENERAL"]').getAttribute('aria-pressed'),'true');
   await pg.locator('[data-booking-next]').click();
   await pg.getByRole('heading',{name:'Ngày và cách tiếp nhận'}).waitFor();
-  assert.ok((await pg.locator('.mq-book-layout').innerText()).includes('Chưa mở đăng ký trực tuyến'),'future appointments must not be sold as available');
+  assert.equal(await pg.locator('[data-booking-mode="appointment"]').isDisabled(),true,'cannot book real appointment without verified backend data');
   await pg.locator('[data-booking-next]').click();
   await pg.getByRole('heading',{name:'Kiểm tra và xác nhận'}).waitFor();
   assert.equal(await pg.locator('#bookingForm button[type=submit]').isDisabled(),true);
