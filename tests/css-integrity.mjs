@@ -31,7 +31,7 @@ const obsolete={
 for (const [file,classes] of Object.entries(obsolete)){
   const source=readFileSync(file,'utf8').replace(/\/\*[\s\S]*?\*\//g,'');
   for(const name of classes){
-    const regex=new RegExp('\\\\.'+name+'(?![\\\\w-])');
+    const regex=new RegExp('\\.'+name+'(?![\\w-])');
     assert.ok(!regex.test(source),file+' has obsolete selector .'+name);
   }
 }
