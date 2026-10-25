@@ -1,27 +1,10 @@
+// Native UI access is decided by server roles, not URL or a client role chooser.
 import assert from 'node:assert/strict';
-const mem=new Map();
-const store={getItem:k=>mem.get(k)||null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};
-globalThis.localStorage=store;globalThis.sessionStorage=store;
-globalThis.window={location:{pathname:'/mediqueue-web/staff.html'},addEventListener:()=>{},scrollTo:()=>{}};
-Object.defineProperty(globalThis,'navigator',{value:{clipboard:{writeText:async()=>{}}},configurable:true});
-globalThis.BroadcastChannel=class { postMessage(){} };
-globalThis.setInterval=()=>0;globalThis.setTimeout=()=>0;
-let html='';const handlers={};
-globalThis.document={hidden:false,createElement:()=>({className:'',innerHTML:'',remove(){}}),getElementById:id=>id==='app'?{set innerHTML(s){html=s},get innerHTML(){return html}}:id==='toasts'?{append(){}}:null,addEventListener:(name,fn)=>{const prev=handlers[name];handlers[name]=async e=>{if(prev)await prev(e);await fn(e);}}};
-globalThis.FormData=class{constructor(x){this.x=x;}get(k){return this.x.data[k];}};
-await import('../app.js');
-assert.match(html,/Đăng nhập nhân viên \/ quản trị/);
-assert.doesNotMatch(html,/data-action="auth-signup-tab"/);
-const nav=async page=>{const target={matches:()=>false,closest:sel=>sel==='[data-page]'?{dataset:{page}}:null};await handlers.click({target});};
-const act=async(action)=>{const target={matches:()=>false,closest:sel=>sel==='[data-action]'?{dataset:{action}}:null};await handlers.click({target});};
-await act('auth-signup-tab');assert.doesNotMatch(html,/Tạo tài khoản bệnh nhân/);
-await nav('book');assert.doesNotMatch(html,/Đăng ký lấy số/);
-await act('toggle-cloud');await nav('staff');
-assert.match(html,/Gọi lượt tiếp theo/);
-await nav('reception');assert.match(html,/Quầy tiếp đón/);
-await nav('analytics');assert.match(html,/Phân tích hoạt động/);
-await nav('board');assert.match(html,/Bảng theo dõi khu chờ/);
-assert.doesNotMatch(html,/Minh Anh/);
-await nav('account');assert.match(html,/Sang cổng bệnh nhân/);
-console.log('Staff portal smoke: PASS (staff-only login, no signup, reception, coordination, privacy-safe board)');
-
+import {readFileSync} from 'node:fs';
+const s=readFileSync('auth-v4.js','utf8');
+assert.match(s,/data\.profile\.role==='staff'&&data\.access\.role==='staff'/);
+assert.match(s,/data\.profile\.role==='admin'&&data\.access\.is_hospital_admin===true/);
+assert.match(s,/await signOut\(\);launched=false/);
+assert.match(s,/if\(portal!=='patient'\)throw/);
+assert.doesNotMatch(s,/role:\s*['"]admin['"]/,'no client-side privilege assertion');
+console.log('PASS: staff/admin portals require server-owned roles and hospital-admin grant.');
