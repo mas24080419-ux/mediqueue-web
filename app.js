@@ -3,6 +3,8 @@ import {sidebar,svg,installSidebar} from './premium-sidebar.js';
 import {titles,activeAssignments,permitted,menuFor,routeAllowed} from './access.js';
 import {qrToken,parseTicketQrPayload,ticketQrSvg,ticketQrPng} from './ticket-qr.js';
 import {createBookingState,validateBookingStep,departmentAvailable,bookingView} from './booking-flow.js';
+import {v5Validate,v5AppointmentCards} from './appointment-v5-ui.js';
+import {makeAppointmentV5} from './appointment-v5-runtime.js';
 
 const ADMIN_PORTAL = typeof window !== 'undefined' && /\/admin\.html$/i.test(window.location?.pathname || '');
 const portal=ADMIN_PORTAL?'admin':/\/staff\.html$/i.test(window.location?.pathname || '')?'staff':'patient';
@@ -49,7 +51,7 @@ const statuses={WAITING:['Đang chờ','wait'],CALLED:['Đã gọi','called'],SE
 function badge(s){let [a,b]=statuses[s]||[s,'wait'];return `<span class="tag tag-${b}">${E(a)}</span>`;}
 function toast(m,type=''){let el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`${I(type?'alert':'checkcircle')}<span>${E(m)}</span>`;let box=document.getElementById('toasts');box.append(el);setTimeout(()=>el.remove(),4600);}
 let navigation=[];
-function move(page){if(!routeAllowed(page,verifiedAccess(),portal,assignment()?.id)){toast('Bạn chưa được cấp quyền cho chức năng này.','error');return;}UI.page=page;window.history?.replaceState?.(null,'','#'+page);window.scrollTo({top:0,behavior:'smooth'});render();}
+function move(page){if(!routeAllowed(page,verifiedAccess(),portal,assignment()?.id)){toast('Bạn chưa được cấp quyền cho chức năng này.','error');return;}UI.page=page;window.history?.replaceState?.(null,'','#'+page);window.scrollTo({top:0,behavior:'smooth'});render();if(portal==='patient'&&UI.mode==='cloud'){if(page==='book')void V5.load();if(page==='track')void V5.load().then(ok=>{if(ok)return V5.appointments();});}}
 function renderShell(){
  navigation=menuFor(verifiedAccess(),portal,assignment()?.id);
  document.body?.classList?.add('workspace');document.body?.classList?.toggle('admin-workspace',ADMIN_PORTAL);
@@ -62,11 +64,14 @@ function stats(){let k=counts();return `<div class="grid4">${[[I('ticket'),'Tổ
 function deptCard(d){const v=liveDept(d.code);return `<div class="card dept"><div class="dept-top"><div class="dept-symbol">${I(d.icon||'hospital',18)}</div><span class="tiny-status ${isPaused(d.code)?'paused':''}">${isPaused(d.code)?'Tạm dừng':'Đang tiếp nhận'}</span></div><h3>${E(d.title)}</h3><p>${rooms().filter(r=>r.department_code===d.code).length} phòng khám</p><div class="dept-foot"><div><span>Số đang chờ</span><div><strong>${v.waiting_count||0}</strong> <span>phiếu</span></div></div><button class="small-link" data-page="book">Lấy số ${I('arrow',12)}</button></div></div>`;}
 function home(){const k=counts();const owner=ownTickets().find(t=>['WAITING','CALLED','SERVING'].includes(t.status))||ownTickets()[0];const progress=k.total?Math.round(k.completed/k.total*100):0;return title('DASHBOARD · MEDIQUEUE','Chào mừng trở lại 👋','Theo dõi hoạt động khám bệnh và quản lý hàng chờ trên cùng một màn hình.',`<button class="btn btn-ghost" data-action="refresh">${I('refresh')} Làm mới</button><button class="btn btn-primary" data-page="book">${I('plus')} Lấy số ngay</button>`)+stats()+`<div class="cols2"><div><section class="hero card"><div class="hero-inner"><div><span class="hero-tag">${I('zap',13)} GIẢI PHÁP BỆNH VIỆN THÔNG MINH</span><h2>Không còn phải chờ<br/>mà không biết đến lượt.</h2><p>Đăng ký nhanh, theo dõi thời gian chờ và chủ động sắp xếp lịch trình khám bệnh.</p><button class="btn" data-page="book">Đăng ký lượt khám ${I('arrow')}</button></div><div class="big-plus">${I('plus',70)}</div></div></section><section class="sec"><div class="section-top"><h2 class="section-title">Tình trạng các khoa</h2><button class="small-link" data-page="staff">Danh sách phòng ${I('arrow',13)}</button></div><div class="dept-grid">${departments().map(deptCard).join('')}</div></section></div><div><div class="card side-panel"><div class="section-top"><h2 class="section-title">${owner?'Phiếu khám của bạn':'Tình hình hàng chờ'}</h2>${I('ticket',17)}</div>${owner?`<div class="queue-box"><div class="eyebrow">Số thứ tự của bạn</div><div class="queue-number">${label(owner)}</div><p>${E(dept(owner.department_code).title)} · ${E(rooms().find(r=>r.id===owner.room_id)?.title||'Chưa phân phòng')}</p>${badge(owner.status)}</div>`:`<div class="queue-box"><div class="eyebrow">Đang phục vụ</div><div class="queue-number">${E(liveDept('GENERAL').current_label||'—')}</div><p>Khám tổng quát</p></div>`}<div class="progress-label"><span>Tiến độ khám</span><b>${progress}%</b></div><div class="progress"><span style="width:${progress}%"></span></div><div class="today-card"><div class="mini-row"><div class="left"><div class="mini-icon">${I('checkcircle')}</div><div><strong>Đã hoàn tất</strong><small>Trong dữ liệu hiện tại</small></div></div><div class="value">${k.completed} lượt</div></div><div class="mini-row"><div class="left"><div class="mini-icon">${I('clock')}</div><div><strong>Đang chờ</strong><small>Cần được tiếp nhận</small></div></div><div class="value">${k.waiting} lượt</div></div></div><div class="panel-note">${I('shield',17)}<span>${UI.mode==='demo'?'Đây là bản thử nghiệm. Tất cả tên và phiếu trên giao diện demo là dữ liệu giả.':'Dữ liệu phiếu khám được giới hạn theo vai trò và tài khoản đăng nhập.'}</span></div></div></div></div><section class="sec card card-pad"><div class="section-top"><h2 class="section-title">Danh sách phòng khám</h2><span class="pill-outline">${rooms().length} phòng</span></div>${roomTable(rooms().slice(0,6))}</section>`;}
 function roomTable(rs){return `<div class="tablewrap"><table class="table"><thead><tr><th>PHÒNG</th><th>CHUYÊN KHOA</th><th>ĐANG GỌI</th><th>CHỜ</th><th>TRẠNG THÁI</th></tr></thead><tbody>${rs.map(r=>{const v=liveRoom(r.id);return `<tr><td class="strong">${E(r.title)}</td><td>${E(dept(r.department_code).title)}</td><td class="strong">${E(v.current_label||'—')}</td><td>${v.waiting_count||0}</td><td><span class="tiny-status ${isPaused(r.department_code)?'paused':''}">${isPaused(r.department_code)?'Tạm dừng':r.is_available?'Hoạt động':'Tạm đóng'}</span></td></tr>`;}).join('')}</tbody></table></div>`;}
+const V5=makeAppointmentV5({rpc,getSession,redraw:()=>{if(['book','track'].includes(UI.page))render();},notify:(msg,type)=>toast(msg,type)});
+let profileRequestKey=null;
 let BOOKING=createBookingState();
 let bookingBusy=false;
 let bookingRequestKey=null;
 function bookingContext(){
- return {profile:UI.remote?.profile||{},departments:departments(),rooms:rooms(),live:UI.remote?.live||[],dateLabel:displayDate(),submitting:bookingBusy};
+ V5.reset();
+ return {profile:UI.remote?.profile||{},departments:departments(),rooms:rooms(),live:UI.remote?.live||[],dateLabel:displayDate(),submitting:bookingBusy,v5:V5.state()};
 }
 function book(){
  if(!BOOKING.initialized){
@@ -90,7 +95,7 @@ function patientTicketQr(t){
  const reason=t.checked_in_at?'Phiếu đã check-in.':t.status!=='WAITING'?'Mã không còn dùng để check-in.':'Xuất trình mã QR này tại quầy tiếp đón.';
  return '<div class="mq-qr-ticket"><div class="mq-qr-thumbnail" aria-label="Mã QR phiếu '+E(label(t))+'">'+ticketQrSvg(token,4)+'</div><div class="mq-qr-copy"><strong>QR check-in · '+E(label(t))+'</strong><p>'+reason+'</p><div class="mq-qr-buttons"><button type="button" class="btn btn-outline btn-sm" data-action="checkin-code" data-id="'+E(t.id)+'">'+I('qr',14)+' Xem QR</button><button type="button" class="btn btn-ghost btn-sm" data-action="download-ticket-qr" data-id="'+E(t.id)+'">Tải QR</button></div></div></div>';
 }
-function track(){let mine=ownTickets().slice().reverse();return title('PHIẾU KHÁM CỦA BẠN','Theo dõi lượt khám','Thông tin phiếu khám cá nhân được cập nhật từ dữ liệu đang có.',`<button class="btn btn-primary" data-page="book">${I('plus')} Lấy số mới</button>`)+`<div class="cols2"><div>${mine.length?mine.map(t=>{const w=waitEstimate(t),room=rooms().find(r=>r.id===t.room_id);return `<div class="card ticket-card"><div class="ticket-head"><span class="overline" style="margin:0">PHIẾU KHÁM ĐIỆN TỬ</span>${badge(t.status)}</div><div class="ticket-value">${label(t)}</div><div class="meta">${E(dept(t.department_code).title)} · ${E(room?.title||'Chưa phân phòng')}<br/>Đăng ký lúc ${fmtTime(t.created_at)}</div><div class="ticket-details"><div><label>Vị trí trong hàng</label><strong>${w?.queue_position||'—'}</strong></div><div><label>Thời gian dự kiến</label><strong>${w?.estimate_minutes!=null?w.estimate_minutes+' phút':'—'}</strong></div><div><label>Check-in</label><strong>${t.checked_in_at?'Đã xác nhận':'Chưa check-in'}</strong></div></div>${patientTicketQr(t)}<div class="ticket-foot">${t.status==='WAITING'?`<button class="btn btn-danger btn-sm" data-action="cancel" data-id="${t.id}">Hủy phiếu</button>`:''}<button class="btn btn-ghost btn-sm" data-action="copy-label" data-label="${label(t)}">${I('copy',14)} Sao chép số</button></div></div>`}).join(''):`<div class="empty">${I('ticket',34)}<h3>Chưa có phiếu khám</h3><p>Hãy chọn chuyên khoa và đăng ký lượt khám đầu tiên.</p><button class="btn btn-primary" data-page="book">Lấy số ngay</button></div>`}</div><aside><div class="card side-panel"><h2 class="section-title">Thông tin hữu ích</h2><div class="panel-note">${I('alert')}<span>Vị trí và thời gian ước tính có thể thay đổi khi có bệnh nhân ưu tiên hoặc bác sĩ tạm ngừng khám.</span></div><div class="today-card"><div class="mini-row"><div class="left"><span class="mini-icon">${I('bell')}</span><div><strong>Theo dõi tự động</strong><small>${UI.mode==='cloud'?'Trang làm mới định kỳ khi đang mở':'Dữ liệu cập nhật giữa các tab cùng trình duyệt'}</small></div></div></div><div class="mini-row"><div class="left"><span class="mini-icon">${I('shield')}</span><div><strong>Quyền riêng tư</strong><small>Không hiển thị hồ sơ người bệnh khác</small></div></div></div></div></div></aside></div>`;}
+function track(){V5.reset();let mine=ownTickets().slice().reverse();return title('PHIẾU KHÁM CỦA BẠN','Theo dõi lượt khám','Thông tin phiếu khám cá nhân được cập nhật từ dữ liệu đang có.',`<button class="btn btn-primary" data-page="book">${I('plus')} Lấy số mới</button>`)+v5AppointmentCards(V5.state())+`<div class="cols2"><div>${mine.length?mine.map(t=>{const w=waitEstimate(t),room=rooms().find(r=>r.id===t.room_id);return `<div class="card ticket-card"><div class="ticket-head"><span class="overline" style="margin:0">PHIẾU KHÁM ĐIỆN TỬ</span>${badge(t.status)}</div><div class="ticket-value">${label(t)}</div><div class="meta">${E(dept(t.department_code).title)} · ${E(room?.title||'Chưa phân phòng')}<br/>Đăng ký lúc ${fmtTime(t.created_at)}</div><div class="ticket-details"><div><label>Vị trí trong hàng</label><strong>${w?.queue_position||'—'}</strong></div><div><label>Thời gian dự kiến</label><strong>${w?.estimate_minutes!=null?w.estimate_minutes+' phút':'—'}</strong></div><div><label>Check-in</label><strong>${t.checked_in_at?'Đã xác nhận':'Chưa check-in'}</strong></div></div>${patientTicketQr(t)}<div class="ticket-foot">${t.status==='WAITING'?`<button class="btn btn-danger btn-sm" data-action="cancel" data-id="${t.id}">Hủy phiếu</button>`:''}<button class="btn btn-ghost btn-sm" data-action="copy-label" data-label="${label(t)}">${I('copy',14)} Sao chép số</button></div></div>`}).join(''):`<div class="empty">${I('ticket',34)}<h3>Chưa có phiếu khám</h3><p>Hãy chọn chuyên khoa và đăng ký lượt khám đầu tiên.</p><button class="btn btn-primary" data-page="book">Lấy số ngay</button></div>`}</div><aside><div class="card side-panel"><h2 class="section-title">Thông tin hữu ích</h2><div class="panel-note">${I('alert')}<span>Vị trí và thời gian ước tính có thể thay đổi khi có bệnh nhân ưu tiên hoặc bác sĩ tạm ngừng khám.</span></div><div class="today-card"><div class="mini-row"><div class="left"><span class="mini-icon">${I('bell')}</span><div><strong>Theo dõi tự động</strong><small>${UI.mode==='cloud'?'Trang làm mới định kỳ khi đang mở':'Dữ liệu cập nhật giữa các tab cùng trình duyệt'}</small></div></div></div><div class="mini-row"><div class="left"><span class="mini-icon">${I('shield')}</span><div><strong>Quyền riêng tư</strong><small>Không hiển thị hồ sơ người bệnh khác</small></div></div></div></div></div></aside></div>`;}
 function staff(){if(!isStaff()){return title('DÀNH CHO NHÂN VIÊN','Điều phối hàng chờ','Chức năng nhân viên yêu cầu quyền được cấp trên máy chủ.')+`<div class="card card-pad" style="max-width:680px"><div class="empty">${I('lock',44)}<h3>Khu vực dành cho nhân viên</h3><p>${UI.mode==='demo'?'Chọn chế độ nhân viên để trải nghiệm các thao tác với dữ liệu mô phỏng.':'Bạn đang đăng nhập bằng tài khoản bệnh nhân. Vai trò do Supabase xác định; không thể đổi quyền từ giao diện.'}</p>${UI.mode==='demo'?`<button class="btn btn-primary" data-action="demo-staff">${I('shield')} Chuyển sang nhân viên demo</button>`:`<button class="btn btn-ghost" data-page="account">Xem tài khoản</button>`}</div></div>`;}
 const ds=departments().filter(d=>UI.mode==='demo'||role()==='admin'||d.code===UI.remote?.profile?.department_code);if(!ds.some(d=>d.code===UI.dept)) UI.dept=ds[0]?.code||'GENERAL';const rs=rooms().filter(r=>r.department_code===UI.dept);if(!rs.some(r=>r.id===UI.room))UI.room=rs[0]?.id||'';const selected=rs.find(r=>r.id===UI.room);const v=liveRoom(UI.room);const tt=tickets().filter(t=>t.department_code===UI.dept).filter(t=>!UI.staffSearch || (label(t)+' '+t.patient_name).toLocaleLowerCase('vi').includes(UI.staffSearch.toLocaleLowerCase('vi'))).sort((a,b)=>b.queue_number-a.queue_number);
 return title('BẢNG ĐIỀU PHỐI','Quản lý phòng khám','Gọi số riêng theo phòng, check-in, chuyển phòng và cập nhật trạng thái phiếu.',`<span class="role-flag">${I('shield',13)} Nhân viên</span><button class="btn btn-ghost" data-action="refresh">${I('refresh')} Làm mới</button>`)+`<section class="card card-pad"><div class="section-top"><h2 class="section-title">Chọn khoa và phòng đang làm việc</h2><span class="pill-outline">Phân quyền theo khoa</span></div><div class="form2"><label class="field">Chuyên khoa<select id="staffDept">${ds.map(d=>`<option value="${E(d.code)}" ${UI.dept===d.code?'selected':''}>${E(d.title)}</option>`).join('')}</select></label><label class="field">Phòng khám<select id="staffRoom">${rs.map(r=>`<option value="${E(r.id)}" ${UI.room===r.id?'selected':''}>${E(r.title)}</option>`).join('')}</select></label></div><div class="cta-line" style="margin-top:16px"><div class="pill-outline">${I('activity',12)} Khoa: ${isPaused(UI.dept)?'Đang tạm dừng':'Đang hoạt động'}</div><button class="btn ${isPaused(UI.dept)?'btn-outline':'btn-ghost'} btn-sm" data-action="toggle-pause">${I(isPaused(UI.dept)?'play':'pause',14)} ${isPaused(UI.dept)?'Mở lại khoa':'Tạm dừng khoa'}</button></div></section><section class="sec rooms">${rs.map(r=>{const x=liveRoom(r.id);return `<article class="card room-card"><div class="mini-row"><div class="room-icon">${I('hospital',19)}</div><span class="tiny-status ${!r.is_available?'paused':''}">${r.is_available?'Sẵn sàng':'Tạm đóng'}</span></div><div><h3 class="room-title">${E(r.title)}</h3><div class="room-dept">${E(dept(r.department_code).title)}</div></div><div class="room-count"><span>Đang gọi / khám</span><b>${E(x.current_label||'—')}</b></div><div class="room-count"><span>Bệnh nhân đang chờ</span><b>${x.waiting_count||0}</b></div><button class="btn ${UI.room===r.id?'btn-primary':'btn-ghost'} btn-wide" data-action="pick-room" data-room="${E(r.id)}">${UI.room===r.id?I('check',15):I('chevron',15)} ${UI.room===r.id?'Đang chọn phòng':'Chọn phòng'}</button></article>`;}).join('')}</section><section class="sec staff-panel"><div class="card card-pad"><div class="section-top"><h2 class="section-title">Bảng điều khiển ${E(selected?.title||'')}</h2><span class="tag tag-${v.current_status==='SERVING'?'serving':'wait'}">${v.current_label?'Đang tiếp nhận':'Sẵn sàng'}</span></div><div class="queue-box"><div class="eyebrow">Bệnh nhân hiện tại</div><div class="queue-number">${E(v.current_label||'—')}</div><p>${v.current_status==='CALLED'?'Đã gọi vào phòng':v.current_status==='SERVING'?'Đang khám':'Chưa có bệnh nhân đang gọi'}</p></div><div class="form2" style="margin-top:18px"><button class="btn btn-primary btn-wide" data-action="call-next">${I('bell')} Gọi số tiếp theo</button><button class="btn btn-ghost btn-wide" data-action="checkin-form">${I('qr')} Check-in mã</button></div><div class="panel-note">${I('shield')}<span>Chỉ gọi bệnh nhân đã check-in và được phân vào đúng phòng. Máy chủ ngăn hai lượt đang khám trong cùng một phòng.</span></div></div><aside class="card card-pad"><div class="section-top"><h2 class="section-title">Lượt khám trong khoa</h2><span class="pill-outline">${tt.length} phiếu</span></div><label class="search">${I('search',16)}<input id="staffSearch" placeholder="Tìm tên hoặc số phiếu" value="${E(UI.staffSearch)}" /></label><div class="stack" style="margin-top:14px;max-height:465px;overflow:auto">${tt.slice(0,20).map(t=>`<div class="mini-row" style="align-items:flex-start;border-bottom:1px solid #edf1f3;padding-bottom:11px"><div class="left"><span class="avatar" style="width:33px;height:33px;font-size:10px">${E(label(t).slice(0,1))}</span><div><strong>${E(label(t))} · ${E(t.patient_name)}</strong><small>${E(rooms().find(r=>r.id===t.room_id)?.title||'Chưa phân phòng')} · ${t.checked_in_at?'Đã check-in':'Chưa check-in'}</small><small>${badge(t.status)}</small></div></div><button class="btn btn-ghost btn-sm" data-action="ticket-actions" data-id="${t.id}">Xử lý</button></div>`).join('')||'<p class="muted">Không có phiếu khám phù hợp.</p>'}</div></aside></section>`;
@@ -264,10 +269,39 @@ if(a==='assign-room'){if(!t||!can('transfer',t))return;let roomId=document.getEl
 }
 function askModalFn(title,description,label,fn,danger){setModal({title,description,confirm:label,danger,doIt:fn});}
 document.addEventListener('click',async e=>{
+
+ const mode=e.target.closest('[data-booking-mode]');
+ if(mode){
+  if(BOOKING.step!==2||bookingBusy)return;
+  const type=mode.dataset.bookingMode;
+  if(type==='appointment'&&!V5.state().ready)return;
+  BOOKING.mode=type==='appointment'?'appointment':'ticket';
+  BOOKING.patientRecordId='';BOOKING.serviceId='';BOOKING.slotId='';
+  BOOKING.accepted=false;bookingRequestKey=null;render();return;
+ }
+ if(e.target.closest('[data-booking-profile-request]')){
+  if(bookingBusy||BOOKING.step!==2||!V5.state().ready)return;
+  const label=BOOKING.patientName.trim();
+  if(label.length<2||label.length>60){toast('Họ tên cần 2–60 ký tự.','error');return;}
+  profileRequestKey=profileRequestKey||rand();
+  try{await V5.requestProfile(label,profileRequestKey);profileRequestKey=null;
+   toast('Đã gửi yêu cầu. Hồ sơ chỉ có hiệu lực sau khi bệnh viện xác minh.');
+  }catch(err){toast('Không thể gửi yêu cầu: '+err.message,'error');}
+  return;
+ }
+ const cancel=e.target.closest('[data-v5-cancel]');
+ if(cancel){
+  const id=cancel.dataset.v5Cancel;
+  if(!V5.state().appointments.some(a=>a.id===id&&a.status==='CONFIRMED'))return;
+  askModalFn('Hủy lịch hẹn','Hủy suất hẹn đã được xác nhận?','Xác nhận hủy',async()=>{
+   try{await V5.cancel(id);toast('Đã hủy lịch hẹn.');}
+   catch(err){toast('Không thể hủy lịch: '+err.message,'error');}
+  },true);return;
+ }
  if(e.target.closest('[data-booking-department]')){
   const code=e.target.closest('[data-booking-department]').dataset.bookingDepartment,ctx=bookingContext();
   if(BOOKING.step!==1||!departmentAvailable(code,ctx.departments,ctx.rooms,ctx.live))return;
-  BOOKING.department=code;BOOKING.accepted=false;bookingRequestKey=null;render();return;
+  BOOKING.department=code;BOOKING.serviceId='';BOOKING.slotId='';BOOKING.accepted=false;bookingRequestKey=null;render();return;
  }
  if(e.target.closest('[data-booking-back]')){if(bookingBusy)return;BOOKING.step=Math.max(0,BOOKING.step-1);render();return;}
  if(e.target.closest('[data-booking-next]')){
@@ -278,6 +312,18 @@ document.addEventListener('click',async e=>{
  if(e.target.closest('[data-booking-reset]')){if(bookingBusy)return;restartBooking();render();return;}
  if(e.target.matches('.modal-backdrop')){UI.modal=null;render();return;}let nav=e.target.closest('[data-page]');if(nav){if(!navigation.some(n=>n[0]===nav.dataset.page))return;if(UI.mode==='cloud'&&!getSession()&&['book','track','reception','staff','analytics'].includes(nav.dataset.page)){UI.page='account';render();toast('Vui lòng đăng nhập để tiếp tục.','error');}else move(nav.dataset.page);return;}const b=e.target.closest('[data-action]');if(b)await actionFromClick(b);});
 document.addEventListener('change',e=>{
+
+ if(e.target.matches('[data-booking-v5-patient]')){
+  BOOKING.patientRecordId=e.target.value;BOOKING.accepted=false;bookingRequestKey=null;render();return;
+ }
+ if(e.target.matches('[data-booking-v5-service]')){
+  BOOKING.serviceId=e.target.value;BOOKING.slotId='';BOOKING.accepted=false;bookingRequestKey=null;
+  if(BOOKING.serviceId)void V5.slots(BOOKING.serviceId,()=>BOOKING.serviceId===e.target.value);
+  else render();return;
+ }
+ if(e.target.matches('[data-booking-v5-slot]')){
+  BOOKING.slotId=e.target.value;BOOKING.accepted=false;bookingRequestKey=null;render();return;
+ }
  if(e.target.id==='bookingAccept'){
   BOOKING.accepted=e.target.checked;
   const submit=document.querySelector('#bookingForm button[type=submit]');
@@ -304,9 +350,16 @@ document.addEventListener('submit',async e=>{if(e.target.id==='bookingForm'){
  const requestKey=bookingRequestKey||(bookingRequestKey=rand());
  bookingBusy=true;render();
  try{
-  await rpc('mq_issue_ticket',{p_department:d,p_name:n,p_request_key:requestKey});
-  UI.dept=d;restartBooking();UI.page='track';
-  await refresh(true);toast('Đã cấp số thứ tự. Xem QR check-in trong Phiếu khám của tôi.');
+  if(BOOKING.mode==='appointment'){
+   const problem=v5Validate(BOOKING,V5.state());if(problem)throw Error(problem);
+   await V5.create(BOOKING.patientRecordId,BOOKING.slotId,requestKey);
+   restartBooking();UI.page='track';render();
+   toast('Đặt lịch đã được backend xác nhận. Chưa check-in hoặc cấp số thứ tự tại quầy.');
+  }else{
+   await rpc('mq_issue_ticket',{p_department:d,p_name:n,p_request_key:requestKey});
+   UI.dept=d;restartBooking();UI.page='track';
+   await refresh(true);toast('Đã cấp số thứ tự. Xem QR check-in trong Phiếu khám của tôi.');
+  }
  }catch(err){
   bookingBusy=false;
   render();toast('Không thể cấp số: '+(err?.message||String(err)),'error');
