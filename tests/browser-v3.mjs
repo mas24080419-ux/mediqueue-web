@@ -104,7 +104,7 @@ try{
  }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
- await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('.mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();
  await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('valid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
  results.push({scenario:'Login error + successful mock login',status:'PASS'});await c.close();
 }finally{await fs.writeFile(path.join(out,'results.json'),JSON.stringify({kind:'MOCK browser integration, NOT live Auth E2E',results,failures},null,2));await browser.close();server.close();}
