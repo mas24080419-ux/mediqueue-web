@@ -13,7 +13,7 @@ const names={patient:'Bệnh nhân',staff:'Nhân viên',admin:'Quản trị'};
 const links={patient:'./index.html',staff:'./staff.html',admin:'./admin.html'};
 function input(name,label,type='text',auto='',placeholder=''){
  const isPass=type==='password';
- return '<label class="mqn-field"><span>'+label+'</span><div class="mqn-input"><input name="'+name+'" type="'+type+'" autocomplete="'+auto+'" placeholder="'+placeholder+'" '+(isPass?'minlength="8" maxlength="128" ':'')+'required />'+(isPass?'<button type="button" data-show-password aria-label="Hiện mật khẩu">Hiện</button>':'')+'</div></label>';
+ return '<label class="mqn-field"><span>'+label+'</span><div class="mqn-input"><input name="'+name+'" type="'+type+'" autocomplete="'+auto+'" placeholder="'+placeholder+'" '+(isPass?'minlength="'+(auto==='current-password'?'1':'8')+'" maxlength="128" ':'')+'required />'+(isPass?'<button type="button" data-show-password aria-label="Hiện mật khẩu">Hiện</button>':'')+'</div></label>';
 }
 function messages(){return (error?'<p class="mqn-error" role="alert">'+escapeHTML(error)+'</p>':'')+(info?'<p class="mqn-info" role="status">'+escapeHTML(info)+'</p>':'');}
 function front(){
@@ -87,7 +87,7 @@ root.addEventListener('submit',async event=>{
  const action=f.id;render();
  try{
   if(action==='mqn-login-form'){
-   if(!username||password.length<8)throw new Error('Vui lòng nhập email và mật khẩu hợp lệ.');
+   if(!username||!password)throw new Error('Vui lòng nhập email và mật khẩu.');
    await signIn(username,password);
    await workspace();return;
   }
