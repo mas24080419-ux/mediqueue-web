@@ -45,6 +45,7 @@ try{
    if(job==='reception')assert.equal(await page.getByRole('button',{name:'Gọi lượt tiếp theo',exact:true}).count(),0);
    if(job==='admin')assert.equal(await page.getByText(ticket.patient_name,{exact:true}).count(),0);
    assert.equal(await page.locator('[data-role],#roleList').count(),0,'no arbitrary role switch');
+   assert.ok(!(await page.locator('body').innerText()).toLowerCase().includes('demo'),'no mock-mode label on authenticated workspace');
    const dims=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert.ok(dims.scroll<=dims.width+2,JSON.stringify(dims));
    if(width<=900){const open=page.getByRole('button',{name:'Mở menu',exact:true});await open.click();assert.equal(await open.getAttribute('aria-expanded'),'true');await page.waitForFunction(()=>document.querySelector('#mq-drawer').getBoundingClientRect().x>=-1);await page.keyboard.press('Escape');assert.equal(await open.getAttribute('aria-expanded'),'false');}
    else {const toggle=page.getByRole('button',{name:'Thu gọn / mở rộng thanh bên',exact:true});await toggle.click();assert.ok(await page.locator('body').evaluate(b=>b.classList.contains('mq-sidebar-collapsed')));await toggle.click();}
