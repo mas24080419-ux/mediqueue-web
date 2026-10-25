@@ -94,7 +94,7 @@ root.addEventListener('submit',async event=>{
   if(action==='mqn-signup-form'){
    if(portal!=='patient')throw new Error('Chỉ bệnh nhân được tự đăng ký.');
    if(name.length<2||password.length<8)throw new Error('Kiểm tra họ tên và mật khẩu (tối thiểu 8 ký tự).');
-   await signUp(username,password);
+   await signUp(username,password,name);
    // A public signup must never authorize staff/admin from user-supplied metadata.
    if(getSession()){await signOut();}
    mode='notice';info='Nếu địa chỉ email hợp lệ, bạn sẽ nhận được hướng dẫn xác minh tài khoản.';
