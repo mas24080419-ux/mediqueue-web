@@ -158,13 +158,14 @@ try{
   const ticketCard=page.locator('.ticket-card').first();
   await ticketCard.locator('.mq-qr-thumbnail svg').waitFor();
   assert.equal(await ticketCard.locator('.mq-qr-thumbnail svg').count(),1);
-  assert.ok((await ticketCard.locator('.mq-qr-thumbnail svg').evaluate(el=>el.getBoundingClientRect().width))>=85,'QR too small for mobile');
+  assert.ok((await ticketCard.locator('.mq-qr-thumbnail svg').evaluate(el=>el.getBoundingClientRect().width))>=150,'QR must be big enough for phone camera scanning');
   assert.ok(!(await ticketCard.innerText()).includes(ticket.patient_name),'QR UI must not expose other patients');
   await ticketCard.getByRole('button',{name:'Xem QR'}).click();
   await page.locator('.mq-qr-modal-image svg').waitFor();
-  assert.ok((await page.locator('.mq-qr-modal-image svg').evaluate(el=>el.getBoundingClientRect().width))>=175,'modal QR not scannable');
+  assert.ok((await page.locator('.mq-qr-modal-image svg').evaluate(el=>el.getBoundingClientRect().width))>=245,'enlarged QR must be readable from another device');
   const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Tải QR về máy (PNG)'}).click()]);
   assert.match(download.suggestedFilename(),/^MediQueue-.*-QR\.png$/);
+  await download.saveAs(path.join(out,'ticket-qr-'+width+'-DOWNLOAD.png'));
   assert.ok(!(await page.locator('body').innerText()).toLowerCase().includes('demo'));
   results.push({scenario:'Patient per-ticket QR visible, enlarged and downloaded',width,status:'PASS'});
   await page.screenshot({path:path.join(out,'ticket-qr-'+width+'-MOCK.png'),fullPage:true,animations:'disabled'});
@@ -186,6 +187,52 @@ try{
   assert.equal(await p.locator('[data-action="scan-ticket-camera"]').count(),1);
   assert.equal(await p.locator('#qr-scan-video').count(),1);
   results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
+  await ctx.close();
+ }
+ // A regular phone QR scanner must open a real MediQueue page, never a raw UUID text item.
+ for(const good of [true,false]){
+  const ctx=await browser.newContext({viewport:{width:390,height:844}});
+  const page=await ctx.newPage();
+  const url='http://127.0.0.1:4173/scan.html#code='+(good?ticket.qr_nonce:'broken');
+  await page.goto(url);
+  await page.locator('#scan-status').waitFor();
+  if(good){
+   assert.match(await page.locator('#scan-status').innerText(),/Chưa xác minh trạng thái/);
+   const destination=await page.locator('#scan-staff').getAttribute('href');
+   assert.match(destination,new RegExp('staff\\.html#checkin='+ticket.qr_nonce+'
+ const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();await assertCardFooterLayout(p,'front');
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('valid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
+ results.push({scenario:'Login error + successful mock login',status:'PASS'});await c.close();
+}finally{await fs.writeFile(path.join(out,'results.json'),JSON.stringify({kind:'MOCK browser integration, NOT live Auth E2E',results,failures},null,2));await browser.close();server.close();}
+assert.deepEqual(failures,[]);console.log(`V3 browser UI PASS: ${results.length} scenarios. Mock API only; live E2E remains separate.`);
+));
+   assert.equal(await page.locator('#scan-copy').isVisible(),true);
+   assert.equal(await page.locator('body').getByText(ticket.patient_name).count(),0,'landing page must not expose patient PII');
+  }else{
+   assert.match(await page.locator('#scan-status').innerText(),/không hợp lệ/);
+   assert.equal(await page.locator('#scan-copy').isVisible(),false);
+  }
+  results.push({scenario:good?'Public QR opens safe branded scan page':'Invalid QR rejected by landing page',status:'PASS'});
+  await ctx.close();
+ }
+ // Staff deep links must prefill an authorized check-in form but never auto-submit a QR.
+ for(const [job,allowed] of [['reception',true],['doctor',false]]){
+  const ctx=await browser.newContext({viewport:{width:1280,height:900}});
+  await mock(ctx,job);
+  await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({access_token:'mock-only-access',refresh_token:'mock-only-refresh',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}})),{uid});
+  let checkinCalls=0;ctx.on('request',req=>{if(req.url().includes('/rpc/mq_checkin_qr'))checkinCalls++;});
+  const page=await ctx.newPage();
+  await page.goto('http://127.0.0.1:4173/staff.html#checkin='+ticket.qr_nonce);
+  await page.locator('.mq-side-inner').waitFor();
+  if(allowed){
+   await page.locator('#checkinForm input[name=nonce]').waitFor();
+   assert.equal(await page.locator('#checkinForm input[name=nonce]').inputValue(),ticket.qr_nonce);
+  }else{
+   assert.equal(await page.locator('#checkinForm').count(),0,'unassigned scanner permissions must not show check-in');
+  }
+  assert.equal(checkinCalls,0,'scanning a QR must not auto-approve check-in');
+  results.push({scenario:allowed?'Authorized receptionist QR handoff':'Doctor cannot check in via QR link',status:'PASS'});
   await ctx.close();
  }
  // Login error, loading state and successful role routing via mock Auth.
