@@ -29,6 +29,20 @@ async function mock(context,job){const f=fixture(job);await context.route('https
  else if(p.endsWith('/signup'))data={user:{id:uid}};
  await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
  });return f;}
+async function assertCardFooterLayout(page,active){
+ const coords=await page.evaluate((side)=>{
+   const face=document.querySelector('#mqn-face-'+side),foot=face?.querySelector('.mqn-footer');
+   const card=document.querySelector('#mqn-card'),note=document.querySelector('.mqn-smallprint'),stage=document.querySelector('.mqn-stage');
+   if(!face||!foot||!card||!note||!stage)return null;
+   const f=foot.getBoundingClientRect(),panel=face.getBoundingClientRect(),hint=note.getBoundingClientRect(),area=stage.getBoundingClientRect();
+   return {footerBottom:f.bottom,faceBottom:panel.bottom,footerTop:f.top,faceTop:panel.top,hintTop:hint.top,stageBottom:area.bottom,footHeight:f.height,cardHeight:card.offsetHeight,faceHeight:face.offsetHeight,position:getComputedStyle(face).position};
+ },active);
+ assert.ok(coords,'auth card layout missing');
+ assert.equal(coords.position,'relative','the active face must determine natural card height');
+ assert.ok(coords.footerBottom<=coords.faceBottom-8,'footer spills outside auth card: '+JSON.stringify(coords));
+ assert.ok(coords.hintTop>=coords.stageBottom+8,'caption collides with card: '+JSON.stringify(coords));
+ assert.ok(coords.footHeight>=50,'footer lacks required vertical spacing: '+JSON.stringify(coords));
+}
 const jobs=['patient','reception','doctor','nurse','laboratory','imaging','pharmacy','cashier','department_lead','admin','unassigned'];
 try{
  for(const job of jobs)for(const width of [1440,1280,1024,768,390,360]){
@@ -73,6 +87,7 @@ try{
   const guest=await guestContext.newPage();const guestErrors=[];guest.on('pageerror',e=>guestErrors.push(e.message));
   await guest.goto('http://127.0.0.1:4173/'+guestPortal);
   await guest.locator('#mqn-login-form').waitFor();
+  await assertCardFooterLayout(guest,'front');
   assert.ok(await guest.locator('.mqn-roles [aria-current="page"]').count()===1);
   assert.equal(await guest.locator('.mq-side-inner').count(),0,'no privileged workspace before authentication');
   assert.equal(await guest.locator('#mqn-register-form').count(),0,'no alternative legacy form');
@@ -80,10 +95,19 @@ try{
   const size=await guest.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
   assert.ok(size.scroll<=size.width+2,'guest horizontal overflow '+JSON.stringify(size));
   if(guestPortal==='index.html'){
-    await guest.getByRole('button',{name:'Chuyển sang đăng ký'}).click();
+    assert.equal(await guest.locator('.mqn-auth-tabs [role="tab"]').count(),2,'login/signup tabs must be visible');
+    await guest.getByRole('tab',{name:'Đăng ký'}).click();
     assert.ok(await guest.locator('#mqn-card').evaluate(n=>n.classList.contains('flipped')));
     assert.equal(await guest.locator('#mqn-face-back').getAttribute('aria-hidden'),'false');
+    assert.equal(await guest.getByRole('tab',{name:'Đăng ký'}).getAttribute('aria-selected'),'true');
+    await guest.waitForTimeout(700);
+    await assertCardFooterLayout(guest,'back');
+    await guest.getByRole('tab',{name:'Đăng nhập'}).click();
+    await guest.waitForTimeout(700);
+    await assertCardFooterLayout(guest,'front');
+    assert.equal(await guest.getByRole('tab',{name:'Đăng nhập'}).getAttribute('aria-selected'),'true');
   }else{
+    assert.equal(await guest.locator('.mqn-auth-tabs').count(),0,'internal portals must not expose signup tabs');
     assert.equal(await guest.getByRole('button',{name:'Chuyển sang đăng ký'}).count(),0,'internal account creation forbidden');
   }
   assert.deepEqual(guestErrors,[]);
@@ -105,7 +129,7 @@ try{
  }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');
- await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();
+ await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('invalid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.locator('#mqn-face-front .mqn-error').filter({hasText:'Invalid login credentials'}).waitFor();await assertCardFooterLayout(p,'front');
  await p.locator('#mqn-face-front input[name=email]').fill('qa@example.invalid');await p.locator('#mqn-face-front input[name=password]').fill('valid-fixture-password');await p.locator('#mqn-login-form button[type=submit]').click();await p.getByRole('heading',{name:'Xin chào! Hôm nay bạn muốn khám khoa nào?'}).waitFor();
  results.push({scenario:'Login error + successful mock login',status:'PASS'});await c.close();
 }finally{await fs.writeFile(path.join(out,'results.json'),JSON.stringify({kind:'MOCK browser integration, NOT live Auth E2E',results,failures},null,2));await browser.close();server.close();}

@@ -23,6 +23,10 @@ function front(){
 function back(){
  return '<section class="mqn-face back" id="mqn-face-back"><div class="mqn-main"><div class="mqn-icon">♡</div><h2>Đăng ký bệnh nhân</h2><p class="mqn-description">Tạo tài khoản để đăng ký khám và quản lý phiếu cá nhân.</p><form id="mqn-signup-form">'+input('fullName','Họ và tên','text','name','Họ và tên')+input('email','Địa chỉ email','email','email','name@example.com')+input('password','Tạo mật khẩu','password','new-password','Tối thiểu 8 ký tự')+messages()+'<button class="mqn-submit" type="submit" '+(busy?'disabled':'')+'>'+(busy?'Đang xử lý…':'Tạo tài khoản')+'</button></form><p class="mqn-note">Vui lòng xác minh email theo hướng dẫn được gửi đến hộp thư của bạn.</p></div><div class="mqn-footer"><p>Đã có tài khoản?<br><strong>Quay lại đăng nhập</strong></p><button type="button" class="mqn-switch" data-flip="login" aria-label="Quay lại đăng nhập">⇄</button></div></section>';
 }
+function authTabs(){
+ if(portal!=='patient')return '';
+ return '<div class="mqn-auth-tabs" role="tablist" aria-label="Tài khoản bệnh nhân"><button type="button" role="tab" class="mqn-auth-tab" data-flip="login" aria-controls="mqn-face-front" aria-selected="'+String(!flipped)+'">Đăng nhập</button><button type="button" role="tab" class="mqn-auth-tab" data-flip="signup" aria-controls="mqn-face-back" aria-selected="'+String(flipped)+'">Đăng ký</button></div>';
+}
 function phasePanel(){
  const recovery=mode==='recover',change=mode==='change-password';
  const title=change?'Đặt mật khẩu mới':recovery?'Khôi phục mật khẩu':'Kiểm tra hộp thư';
@@ -32,7 +36,7 @@ function phasePanel(){
 }
 function render(){
  document.body.className='mqn-page';document.title='MediQueue | Đăng nhập';
- root.innerHTML='<main class="mqn-layout"><div class="mqn-orb first" aria-hidden="true"></div><div class="mqn-orb second" aria-hidden="true"></div><section class="mqn-intro"><a class="mqn-brand" href="./index.html"><span class="mqn-symbol">✚</span><span><b>MediQueue</b><small>SMART HOSPITAL EXPERIENCE</small></span></a><div class="mqn-eyebrow"><span class="mqn-dot"></span>NỀN TẢNG ĐIỀU PHỐI KHÁM BỆNH</div><h1>Chạm nhẹ.<br>Đăng nhập dễ dàng.<br><em>Chăm sóc tốt hơn.</em></h1><p>Không gian khám bệnh và quản lý công việc rõ ràng, dễ sử dụng. Quyền truy cập được xác minh trước khi mở thông tin bệnh viện.</p><div class="mqn-benefits"><span>✓ Xác minh danh tính</span><span>⌁ Theo khoa/phòng</span><span>◷ Thao tác thuận tiện</span></div><div class="mqn-intro-foot">MEDIQUEUE · CHĂM SÓC VÀ ĐIỀU PHỐI</div></section><section class="mqn-auth"><div class="mqn-topline"><span>CỔNG TRUY CẬP MEDIQUEUE</span><span class="mqn-security">BẢO MẬT TÀI KHOẢN</span></div><nav class="mqn-roles" aria-label="Chọn cổng truy cập">'+Object.entries(names).map(([key,label])=>'<a class="mqn-role" href="'+links[key]+'" '+(portal===key?'aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav>'+(mode==='login'?'<div class="mqn-stage"><div id="mqn-card" class="mqn-card '+(flipped?'flipped':'')+'">'+front()+(portal==='patient'?back():'')+'</div></div>':phasePanel())+'<p class="mqn-smallprint">Mỗi tài khoản chỉ được sử dụng các chức năng đã được cấp quyền.</p></section></main>';
+ root.innerHTML='<main class="mqn-layout"><div class="mqn-orb first" aria-hidden="true"></div><div class="mqn-orb second" aria-hidden="true"></div><section class="mqn-intro"><a class="mqn-brand" href="./index.html"><span class="mqn-symbol">✚</span><span><b>MediQueue</b><small>SMART HOSPITAL EXPERIENCE</small></span></a><div class="mqn-eyebrow"><span class="mqn-dot"></span>NỀN TẢNG ĐIỀU PHỐI KHÁM BỆNH</div><h1>Chạm nhẹ.<br>Đăng nhập dễ dàng.<br><em>Chăm sóc tốt hơn.</em></h1><p>Không gian khám bệnh và quản lý công việc rõ ràng, dễ sử dụng. Quyền truy cập được xác minh trước khi mở thông tin bệnh viện.</p><div class="mqn-benefits"><span>✓ Xác minh danh tính</span><span>⌁ Theo khoa/phòng</span><span>◷ Thao tác thuận tiện</span></div><div class="mqn-intro-foot">MEDIQUEUE · CHĂM SÓC VÀ ĐIỀU PHỐI</div></section><section class="mqn-auth"><div class="mqn-topline"><span>CỔNG TRUY CẬP MEDIQUEUE</span><span class="mqn-security">BẢO MẬT TÀI KHOẢN</span></div><nav class="mqn-roles" aria-label="Chọn cổng truy cập">'+Object.entries(names).map(([key,label])=>'<a class="mqn-role" href="'+links[key]+'" '+(portal===key?'aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav>'+(mode==='login'?authTabs():'')+(mode==='login'?'<div class="mqn-stage"><div id="mqn-card" class="mqn-card '+(flipped?'flipped':'')+'">'+front()+(portal==='patient'?back():'')+'</div></div>':phasePanel())+'<p class="mqn-smallprint">Mỗi tài khoản chỉ được sử dụng các chức năng đã được cấp quyền.</p></section></main>';
  const faces=[root.querySelector('#mqn-face-front'),root.querySelector('#mqn-face-back')];
  if(faces[0]){faces[0].inert=flipped;faces[0].setAttribute('aria-hidden',String(flipped));}
  if(faces[1]){faces[1].inert=!flipped;faces[1].setAttribute('aria-hidden',String(!flipped));}
@@ -66,6 +70,7 @@ root.addEventListener('click',e=>{
  if(switcher && portal==='patient' && !busy){
   flipped=switcher.dataset.flip==='signup';error='';info='';
   const card=root.querySelector('#mqn-card');card?.classList.toggle('flipped',flipped);
+  for(const tab of root.querySelectorAll('.mqn-auth-tab'))tab.setAttribute('aria-selected',String(tab.dataset.flip===switcher.dataset.flip));
   for(const [sel,inactive] of [['#mqn-face-front',flipped],['#mqn-face-back',!flipped]]){
    const el=root.querySelector(sel);if(el){el.inert=inactive;el.setAttribute('aria-hidden',String(inactive));}
   }
