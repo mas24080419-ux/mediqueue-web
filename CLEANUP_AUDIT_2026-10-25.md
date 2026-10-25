@@ -16,14 +16,14 @@ No Supabase schema, Auth/RLS/RPC, clinical workflow, or production deployment is
 1. Extract only patient homepage styles into `patient-landing.css`.
 2. Stop loading archived `auth-v3.css` on patient/staff/admin portals.
 3. Delete `auth-v3.css` on the refactor branch.
-4. Update Pages packaging to serve `patient-landing.css`, and add a stylesheet integrity test to PR and deployment CI.
+4. Remove unreachable `staff()` (about 5.3 KB) from `app.js`: the live `staff`, `tasks`, and `work-home` routes already use `workDashboard()` instead.\n5. Update Pages packaging to serve `patient-landing.css`, and add a stylesheet integrity test to PR and deployment CI.
 
 ## Deferred work / risk
 - Do not delete more legacy sidebar selectors or override rules without visual diff at desktop/mobile, cloud auth, queue, and admin screens.
 - `app.js` is still a large procedural module; splitting by feature requires regression testing for login/logout, refresh races, queue actions, admin reporting, and route checks.
 - V4 is an independent UI demo, not the deployed app; merge its design only after approval and separate integration tests.
 - CI browser tests mock Auth/PostgREST. PASS does not establish live authenticated workflow or real MFA.
-- The old `auth-v3.css` removal can change inherited global CSS on auth form elements. Prior to merging, review PR screenshots for patient/staff/admin at 1440px/390px and specifically verify cloud login form dimensions.
+- Removing the dead `staff()` function should not affect routes; nevertheless the browser regression suite must stay green.\n- The old `auth-v3.css` removal can change inherited global CSS on auth form elements. Prior to merging, review PR screenshots for patient/staff/admin at 1440px/390px and specifically verify cloud login form dimensions.
 
 ## Status
 This is a **review-only cleanup PR**. It must not be merged into `main` until design review. Existing `main` deployment remains untouched.
