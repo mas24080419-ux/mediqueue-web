@@ -22,6 +22,8 @@ jobs:
         working-directory: security/rbac-abac
       - name: Synthetic local PostgreSQL tests, no cloud credentials
         run: node security/rbac-abac/tests/rbac-abac.mjs
+      - name: RLS regression — queue issuance and pause/resume with synthetic identities
+        run: node security/rbac-abac/tests/rls-queue-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
