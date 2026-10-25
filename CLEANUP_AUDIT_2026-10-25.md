@@ -1,29 +1,49 @@
-# MediQueue front-end CSS audit — 2026-10-25
+# MediQueue UI source refactor / audit — 2026-10-25
 
-## Scope
-Reviewed the deployed GitHub Pages V3 source on `main` at baseline `f6381a3faa24c166f9d86b27cc803b1362057f2c`.
-The V4 standalone prototype (`/mnt/data/MediQueue_V4_UI_Phase1`) is not part of this repository.
-No Supabase schema, Auth/RLS/RPC, clinical workflow, or production deployment is changed.
+## Source / guarantees
 
-## Verified observations
-- All three production portals imported five global stylesheets, including `auth-v3.css` (17,128 bytes).
-- `auth-v3.css` still contains the original standalone auth-screen implementation, such as `.auth-layout`, `.intro-panel`, `.portal-option`, and `.otp-input`. The currently deployed `app.js` does **not** render these auth-screen classes; it uses the legacy inline `authForm()` instead.
-- The live patient homepage **does** use `.preview-label`, `.preview-grid`, `.preview-card` and related patient card selectors. These must be retained.
-- Approximate static duplicate-selector scan found 49 groups of repeated properties across the five CSS files. **This is not 49 confirmed defects**: most are responsive overrides, CSS resets or intentional V3 customizations. Especially suspicious are multiple global color tokens, `.work-side`, `.work-header`, and `.auth-card`.
-- Older `.sidebar`, `.role-btn`, `.mq-roles` and demo-preview rules remain in legacy CSS; these were not deleted in this low-risk pass because not all DOM states can be verified without authenticated live browser tests.
+Source: `mas24080419-ux/mediqueue-web`, deployed `main` baseline `f6381a3faa24c166f9d86b27cc803b1362057f2c`.
+Refactor branch: `refactor/remove-unused-auth-v3-css-20261025`.
+Pull request: https://github.com/mas24080419-ux/mediqueue-web/pull/3
 
-## Changes in this PR
-1. Extract only patient homepage styles into `patient-landing.css`.
-2. Stop loading archived `auth-v3.css` on patient/staff/admin portals.
-3. Delete `auth-v3.css` on the refactor branch.
-4. Remove unreachable `staff()` (about 5.3 KB) from `app.js`: the live `staff`, `tasks`, and `work-home` routes already use `workDashboard()` instead.\n5. Update Pages packaging to serve `patient-landing.css`, and add a stylesheet integrity test to PR and deployment CI.
+Only frontend files, their packaging workflow and automated frontend tests have changed. No changes to Supabase Auth, RLS, SQL migrations, API/RPC, real patient data or live main website. The separate V4 standalone prototype is NOT included in this PR.
 
-## Deferred work / risk
-- Do not delete more legacy sidebar selectors or override rules without visual diff at desktop/mobile, cloud auth, queue, and admin screens.
-- `app.js` is still a large procedural module; splitting by feature requires regression testing for login/logout, refresh races, queue actions, admin reporting, and route checks.
-- V4 is an independent UI demo, not the deployed app; merge its design only after approval and separate integration tests.
-- CI browser tests mock Auth/PostgREST. PASS does not establish live authenticated workflow or real MFA.
-- Removing the dead `staff()` function should not affect routes; nevertheless the browser regression suite must stay green.\n- The old `auth-v3.css` removal can change inherited global CSS on auth form elements. Prior to merging, review PR screenshots for patient/staff/admin at 1440px/390px and specifically verify cloud login form dimensions.
+## Implemented cleanup
 
-## Status
-This is a **review-only cleanup PR**. It must not be merged into `main` until design review. Existing `main` deployment remains untouched.
+1. Removed dead `staff()` legacy renderer (~5,284 JavaScript characters). The actual `staff/tasks/work-home` route already renders `workDashboard()`, preserved unchanged.
+2. Replaced 17.1 KB legacy `auth-v3.css` with `patient-landing.css` (~1.5 KB) that contains only selectors required by the current patient landing cards. Removed archived OTP/login design rules not mounted by the live `app.js`. Updated three portals and Pages bundling.
+3. Pruned **two passes** of V1–V3 selectors in `styles.css`, `dashboard.css`, `premium-sidebar.css`, and `integration.css`: old `.sidebar`, `.nav-btn`, `.topbar`, `.main`, role navigation `.role-list` / `.role-btn`, preview-only `.mq-roles` / `.mq-patient-page`, old room-card design, old dashboard matrix, and other unreferenced classes. Preserved grouped selectors that contain live classes and kept working responsive rules.
+4. Removed five unused sidebar SVG icon definitions: `bell`, `search`, `mail`, `pill`, `clock`. Icons still used by the live menu or access map remain.
+5. Eliminated six global CSS declarations in `styles.css :root` that were subsequently overwritten by `dashboard.css :root`; kept effective cascade values untouched.
+6. Added `tests/css-integrity.mjs`, invoked by the PR and Pages workflows, to verify active stylesheet imports and block reintroduction of obsolete CSS classes. Existing JS/browser/RBAC test files remain unchanged.
+
+## Current output size / source character count
+
+| File | Baseline | Refactor branch |
+|---|---:|---:|
+| `auth-v3.css` -> `patient-landing.css` | 17,128 | 1,530 |
+| `styles.css` | 20,929 | 16,038 |
+| `dashboard.css` | 9,394 | 6,127 |
+| `premium-sidebar.css` | 12,614 | 9,641 |
+| `integration.css` | 1,728 | 1,661 |
+| `app.js` | 64,966 | 59,682 |
+| `premium-sidebar.js` | ~7,830 | ~7,447 |
+
+Approximate decrease: **32,000 characters of CSS/JS** for the above source files, not a benchmark of network transfer, memory usage, or execution speed. Files contain Vietnamese Unicode, so character counts are not exactly equal to bytes.
+
+## JS function inventory and risk
+
+- Reviewed 50 named functions remaining in `app.js`; no additional independently proved dead function after removal of `staff()`.
+- Be aware: `deptCard` is referenced as a callback in `.map(deptCard)`, not necessarily as `deptCard(...)`. A naive “no direct function call” detector would wrongly remove it.
+- `app.js` remains a ~60K-character procedural module with coupled event delegation, demo/cloud data access, and DOM rendering. Splitting into several components would be a distinct, riskier engineering step requiring a full authenticated regression suite. Avoid deleting the `home()` fallback or `tag-*` status CSS just because they look unused under simple searches.
+- The current refactor does not assert that the UI is production HIS-ready or that E2E live Supabase Auth/MFA has passed.
+
+## CSS cascade remaining
+
+`styles.css`, `dashboard.css`, `premium-sidebar.css` and `integration.css` still have legitimate responsive overrides and some intentionally shared global selectors. Duplicate-selector counts without CSS media context are **not** a defect count. The code is safer after removing the identified dead families, but claiming complete CSS ownership isolation would be inaccurate.
+
+Before merging: review patient login, staff login, and admin login on desktop and mobile; check queue check-in/doctor controls in both demo and authenticated environments where accounts exist. CI browser tests mock Supabase and cannot replace real E2E.
+
+## Current acceptance
+
+The existing PR uses the `V3 integration checks (no deployment)` GitHub Action, which runs JS syntax, source integrity, regression tests, and Playwright scenarios across roles and viewports. Read the latest workflow status on this PR before merge. **PR remains Draft, not merged or deployed.**
