@@ -158,13 +158,14 @@ try{
   const ticketCard=page.locator('.ticket-card').first();
   await ticketCard.locator('.mq-qr-thumbnail svg').waitFor();
   assert.equal(await ticketCard.locator('.mq-qr-thumbnail svg').count(),1);
-  assert.ok((await ticketCard.locator('.mq-qr-thumbnail svg').evaluate(el=>el.getBoundingClientRect().width))>=85,'QR too small for mobile');
+  assert.ok((await ticketCard.locator('.mq-qr-thumbnail svg').evaluate(el=>el.getBoundingClientRect().width))>=150,'QR too small for phone camera scanning');
   assert.ok(!(await ticketCard.innerText()).includes(ticket.patient_name),'QR UI must not expose other patients');
   await ticketCard.getByRole('button',{name:'Xem QR'}).click();
   await page.locator('.mq-qr-modal-image svg').waitFor();
-  assert.ok((await page.locator('.mq-qr-modal-image svg').evaluate(el=>el.getBoundingClientRect().width))>=175,'modal QR not scannable');
+  assert.ok((await page.locator('.mq-qr-modal-image svg').evaluate(el=>el.getBoundingClientRect().width))>=245,'enlarged QR too small for practical scanning');
   const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Tải QR về máy (PNG)'}).click()]);
   assert.match(download.suggestedFilename(),/^MediQueue-.*-QR\.png$/);
+  await download.saveAs(path.join(out,'ticket-qr-'+width+'-DOWNLOAD.png'));
   assert.ok(!(await page.locator('body').innerText()).toLowerCase().includes('demo'));
   results.push({scenario:'Patient per-ticket QR visible, enlarged and downloaded',width,status:'PASS'});
   await page.screenshot({path:path.join(out,'ticket-qr-'+width+'-MOCK.png'),fullPage:true,animations:'disabled'});
@@ -187,6 +188,50 @@ try{
   assert.equal(await p.locator('#qr-scan-video').count(),1);
   results.push({scenario:'Reception camera scanner and manual QR fallback',status:'PASS'});
   await ctx.close();
+ }
+
+ // QR camera link must open a first-party page without disclosing patient data.
+ for(const good of [true,false]){
+   const ctx=await browser.newContext({viewport:{width:390,height:844}});
+   const pg=await ctx.newPage();
+   await pg.goto('http://127.0.0.1:4173/scan.html#code='+(good?ticket.qr_nonce:'invalid'));
+   await pg.locator(good?'#scan-status.ok':'#scan-status.bad').waitFor();
+   if(good){
+     const href=await pg.locator('#scan-staff').getAttribute('href');
+     assert.ok(href.endsWith('staff.html#checkin='+ticket.qr_nonce),'scan landing must hand off only validated UUID');
+     assert.equal(await pg.locator('#scan-copy').isVisible(),true);
+     assert.equal(await pg.getByText(ticket.patient_name,{exact:true}).count(),0,'QR page must never expose patient name');
+     assert.match(await pg.locator('#scan-status').innerText(),/Chưa xác minh trạng thái/);
+   }else{
+     assert.equal(await pg.locator('#scan-copy').isVisible(),false,'invalid QR must not allow copying');
+   }
+   results.push({scenario:good?'First-party QR landing opens':'QR landing rejects invalid token',status:'PASS'});
+   await ctx.close();
+ }
+
+ // Scanned phone QR can prefill an authorized receptionist form, without auto-checking in.
+ for(const [job,allowed] of [['reception',true],['doctor',false]]){
+   const ctx=await browser.newContext({viewport:{width:1280,height:900}});
+   await mock(ctx,job);
+   await ctx.addInitScript(({uid})=>sessionStorage.setItem('mq_web_session_v2',JSON.stringify({
+     access_token:'mock-only-access',refresh_token:'mock-only-refresh',
+     expires_at:Math.floor(Date.now()/1000)+3600,user:{id:uid,email:'qa@example.invalid'}
+   })),{uid});
+   let checkins=0;
+   ctx.on('request',req=>{if(req.url().includes('/rpc/mq_checkin_qr'))checkins++;});
+   const pg=await ctx.newPage();
+   await pg.goto('http://127.0.0.1:4173/staff.html#checkin='+ticket.qr_nonce);
+   await pg.locator('.mq-side-inner').waitFor();
+   if(allowed){
+     await pg.locator('#checkinForm input[name=nonce]').waitFor();
+     assert.equal(await pg.locator('#checkinForm input[name=nonce]').inputValue(),ticket.qr_nonce);
+   }else{
+     await pg.waitForTimeout(250);
+     assert.equal(await pg.locator('#checkinForm').count(),0,'doctor must not enter reception without assigned permission');
+   }
+   assert.equal(checkins,0,'just scanning must never automatically check a patient in');
+   results.push({scenario:allowed?'Reception prefilled from QR link':'No unauthorized deep-link checkin',status:'PASS'});
+   await ctx.close();
  }
  // Login error, loading state and successful role routing via mock Auth.
  const c=await browser.newContext({viewport:{width:1280,height:900}});await mock(c,'patient');const p=await c.newPage();await p.goto('http://127.0.0.1:4173/index.html');

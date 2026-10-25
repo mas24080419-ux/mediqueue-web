@@ -7,8 +7,31 @@ export function qrToken(nonce){
  const value=String(nonce??'').trim();
  return UUID_PATTERN.test(value)?value.toLowerCase():null;
 }
-export function makeTicketQr(nonce){
+/** QR payload is a first-party HTTPS deep link, with its nonce in the URL fragment.
+ * The fragment is never sent with an HTTP request; do not include PHI in QR data.
+ * Relative module URL keeps GitHub Pages project subpaths working. */
+export function ticketQrLink(nonce,base=new URL('scan.html',import.meta.url)){
  const value=qrToken(nonce);
+ if(!value)return null;
+ const u=new URL(base);
+ if(!['https:','http:','file:'].includes(u.protocol))return null;
+ u.search='';u.hash='code='+encodeURIComponent(value);
+ return u.href;
+}
+/** Accept old plain UUIDs and only first-party scan.html links from newer QR codes. */
+export function parseTicketQrPayload(payload,base=new URL('scan.html',import.meta.url)){
+ const literal=qrToken(payload);
+ if(literal)return literal;
+ try{
+  const expected=new URL(base),given=new URL(String(payload??'').trim());
+  if(given.origin!==expected.origin||given.pathname!==expected.pathname||given.search)return null;
+  const params=new URLSearchParams(given.hash.slice(1));
+  if(params.size!==1||!params.has('code'))return null;
+  return qrToken(params.get('code'));
+ }catch{return null;}
+}
+export function makeTicketQr(nonce,base){
+ const value=ticketQrLink(nonce,base);
  if(!value)return null;
  const qr=qrcode(0,'M');
  qr.addData(value,'Byte');

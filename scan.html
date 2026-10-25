@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eaf3f4">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>MediQueue | Mã QR check-in</title>
+<link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./scan.css">
+</head>
+<body>
+<main class="scan-layout">
+  <header class="scan-brand"><span class="scan-symbol">✚</span><span><strong>MediQueue</strong><small>PHIẾU KHÁM ĐIỆN TỬ</small></span></header>
+  <section class="scan-card" aria-labelledby="scan-title">
+    <div class="scan-icon" aria-hidden="true">▦</div>
+    <h1 id="scan-title">Mã QR check-in</h1>
+    <p class="scan-subtitle" id="scan-message" role="status">Đang kiểm tra định dạng mã QR…</p>
+    <div class="scan-status" id="scan-status" aria-live="polite"></div>
+    <div class="scan-token" id="scan-token" hidden></div>
+    <div class="scan-actions">
+      <button type="button" class="scan-button" id="scan-copy" hidden>Sao chép mã check-in</button>
+      <a class="scan-link" href="./staff.html" id="scan-staff" hidden>Dành cho nhân viên tiếp đón</a>
+      <a class="scan-link" href="./index.html">Trở về MediQueue</a>
+    </div>
+    <p class="scan-notice">Việc mở trang này <strong>không có nghĩa là đã check-in</strong>. Nhân viên bệnh viện phải kiểm tra quyền, trạng thái phiếu và xác nhận tại hệ thống MediQueue. Trang này không hiển thị dữ liệu cá nhân hoặc bệnh án.</p>
+  </section>
+  <footer>MediQueue · Điều phối và tiếp đón bệnh nhân</footer>
+</main>
+<script type="module" src="./scan.js"></script>
+</body>
+</html>

@@ -3,16 +3,16 @@
 .preview-card{text-align:left;cursor:pointer;font:inherit;display:block;align-content:start;color:var(--mq-ink)}.preview-title{margin-top:10px}.work-content .preview-banner{margin-bottom:24px}.work-content .preview-card h3{color:var(--mq-ink)}
 
 /* QR for individually authorized patient tickets. SVG and PNG stay local. */
-.mq-qr-ticket{display:grid;grid-template-columns:126px minmax(0,1fr);align-items:center;gap:17px;margin:16px 0;padding:14px;border:1px solid #dcebea;border-radius:17px;background:#f8fcfb}
-.mq-qr-thumbnail{display:flex;align-items:center;justify-content:center;width:126px;min-height:126px;padding:7px;background:#fff;border:1px solid #dbe6e6;border-radius:11px}
-.mq-qr-thumbnail svg{display:block;width:110px;height:auto;max-width:100%;shape-rendering:crispEdges}
+.mq-qr-ticket{display:grid;grid-template-columns:172px minmax(0,1fr);align-items:center;gap:17px;margin:16px 0;padding:14px;border:1px solid #dcebea;border-radius:17px;background:#f8fcfb}
+.mq-qr-thumbnail{display:flex;align-items:center;justify-content:center;width:172px;min-height:172px;padding:7px;background:#fff;border:1px solid #dbe6e6;border-radius:11px}
+.mq-qr-thumbnail svg{display:block;width:156px;height:auto;max-width:100%;shape-rendering:crispEdges}
 .mq-qr-copy{min-width:0}.mq-qr-copy strong{display:block;color:#136f73;font-size:13px}.mq-qr-copy p{margin:7px 0 12px;color:#617d88;font-size:11px;line-height:1.6}
 .mq-qr-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:7px}.mq-qr-buttons .btn{margin:0}
-.mq-qr-modal-image{display:flex;align-items:center;justify-content:center;width:min(270px,100%);max-width:100%;margin:15px auto 12px;padding:12px;background:#fff;border:1px solid #dde7e8;border-radius:16px}
-.mq-qr-modal-image svg{width:min(240px,100%);height:auto;display:block;shape-rendering:crispEdges}
+.mq-qr-modal-image{display:flex;align-items:center;justify-content:center;width:min(330px,100%);max-width:100%;margin:15px auto 12px;padding:12px;background:#fff;border:1px solid #dde7e8;border-radius:16px}
+.mq-qr-modal-image svg{width:min(300px,100%);height:auto;display:block;shape-rendering:crispEdges}
 .mq-qr-code-text{font:700 11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all;text-align:center;color:#24525b;margin:12px 0}
 .mq-qr-unavailable{margin:14px 0;padding:12px;border:1px solid #e1e8ea;border-radius:10px;font-size:12px;color:#526a74}
-@media(max-width:450px){.mq-qr-ticket{grid-template-columns:100px minmax(0,1fr);gap:11px;padding:10px}.mq-qr-thumbnail{width:100px;min-height:100px;padding:4px}.mq-qr-thumbnail svg{width:90px}.mq-qr-copy strong{font-size:12px}.mq-qr-copy p{font-size:10px}.mq-qr-buttons .btn{font-size:10px;padding:7px 9px}}
+@media(max-width:600px){.mq-qr-ticket{grid-template-columns:1fr;gap:13px;padding:14px;justify-items:center;text-align:center}.mq-qr-thumbnail{width:200px;min-height:200px;padding:7px}.mq-qr-thumbnail svg{width:184px}.mq-qr-copy strong{font-size:13px}.mq-qr-copy p{font-size:11px}.mq-qr-buttons{justify-content:center}.mq-qr-buttons .btn{font-size:11px;padding:8px 11px}}
 
 .mq-qr-scan-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .mq-qr-scan-video{width:100%;max-height:290px;object-fit:cover;border-radius:12px;background:#102f3a;margin-top:10px}
