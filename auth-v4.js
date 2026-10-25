@@ -53,7 +53,7 @@ async function workspace(){
  for(const href of ['auth-v3.css','styles.css','dashboard.css','premium-sidebar.css','integration.css']){
   const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);
  }
- document.body.className='workspace';
+ document.body.className=portal==='admin'?'workspace admin-workspace':'workspace';
  root.innerHTML='';
  await import('./app.js');
 }
