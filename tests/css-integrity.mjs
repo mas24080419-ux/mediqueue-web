@@ -24,9 +24,10 @@ console.log('PASS: stylesheet references, active patient selectors, and deployme
 // Removed V1–V3 presentation surfaces must not silently return.
 // Exact-class matches only: .work-side and .mq-sidebar-* remain valid.
 const obsolete={
-  'styles.css':['sidebar','nav-btn','topbar','main'],
-  'dashboard.css':['sidebar-eyebrow','side-divider','side-foot','role-list','role-btn','role-symbol','admin-role-pill'],
-  'premium-sidebar.css':['mq-roles','mq-preview-note','mq-ui-demo-watermark','mq-patient-page','mq-patient-preview-cta','preview-body']
+  'styles.css':['sidebar','nav-btn','topbar','main','shell','brand','brand-icon','brand-mark','brand-text','nav-label','spacer','side-notice','side-bottom','crumb','top-actions','today','icon-btn','btn-dark','dim','divider','warn','auth-page','filters','room-card','room-icon','room-title','room-dept','room-count','room-btns','footer','select-line','mobile-menu','tooltip','staff-panel','no-wrap','brand-mobile'],
+  'dashboard.css':['sidebar-eyebrow','side-divider','side-foot','role-list','role-btn','role-symbol','admin-role-pill','work-link','kpi-suffix','task-status','action-demo','dept-matrix','matrix-grid','matrix-cross','matrix-emoji','admin-risk-strip','admin-command','command-icon'],
+  'premium-sidebar.css':['mq-roles','mq-preview-note','mq-ui-demo-watermark','mq-patient-page','mq-patient-preview-cta','preview-body','mq-tag','mq-hide','work-link'],
+  'integration.css':['table-wrap','cols-main']
 };
 for (const [file,classes] of Object.entries(obsolete)){
   const source=readFileSync(file,'utf8').replace(/\/\*[\s\S]*?\*\//g,'');
