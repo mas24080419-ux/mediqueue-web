@@ -8,12 +8,12 @@ const icons={
     monitor:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/>',
     chart:'<path d="M4 20V9m6 11V4m6 16v-8m4 8v-5"/>',
-    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 6-3 6-3 9h18c0-3-3-3-3-9M10 21h4"/>',
+
     shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/>',
     settings:'<circle cx="12" cy="12" r="3"/><path d="M4 9l-2 3 2 3 3 1 2 3h6l2-3 3-1 2-3-2-3-3-1-2-3H9L7 8z"/>',
     floor:'<path d="M3 21h18M5 21V5l7-2 7 2v16M9 8h2m3 0h2M9 12h2m3 0h2M9 16h2m3 0h2"/>',
     key:'<circle cx="8" cy="15" r="5"/><path d="m12 12 9-9m-2 0h2v3m-7 1 3 3"/>',
-    search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
+
     file:'<path d="M7 3h8l4 4v14H7zM15 3v5h4M10 13h6m-6 4h6"/>',
     chevron:'<path d="m6 9 6 6 6-6"/>',
     panel:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m-3-9h1"/>',
@@ -21,9 +21,7 @@ const icons={
     menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
     exit:'<path d="M10 17l5-5-5-5m5 5H3M12 3h6a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-6"/>',
     help:'<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5m0 3h.01"/>',
-    mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
-    pill:'<path d="m10 4 10 10a5 5 0 0 1-7 7L3 11a5 5 0 0 1 7-7ZM8 16l8-8"/>',
-    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/>'
+
   };
 export const svg=(name)=>'<svg aria-hidden="true" viewBox="0 0 24 24">'+(icons[name]||icons.grid)+'</svg>';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

@@ -20,6 +20,7 @@ jobs:
       - name: Syntax and regression tests
         run: |
           node --check app.js
+          node tests/css-integrity.mjs
           node --check premium-sidebar.js
           node --check supabase-client.js
           node tests/smoke.mjs
