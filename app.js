@@ -2,6 +2,7 @@ import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc,consum
 import {sidebar,svg,installSidebar} from './premium-sidebar.js';
 import {titles,activeAssignments,permitted,menuFor,routeAllowed} from './access.js';
 import {qrToken,parseTicketQrPayload,ticketQrSvg,ticketQrPng} from './ticket-qr.js';
+import {createBookingState,validateBookingStep,departmentAvailable,bookingView} from './booking-flow.js';
 
 const ADMIN_PORTAL = typeof window !== 'undefined' && /\/admin\.html$/i.test(window.location?.pathname || '');
 const portal=ADMIN_PORTAL?'admin':/\/staff\.html$/i.test(window.location?.pathname || '')?'staff':'patient';
@@ -61,7 +62,26 @@ function stats(){let k=counts();return `<div class="grid4">${[[I('ticket'),'Tổ
 function deptCard(d){const v=liveDept(d.code);return `<div class="card dept"><div class="dept-top"><div class="dept-symbol">${I(d.icon||'hospital',18)}</div><span class="tiny-status ${isPaused(d.code)?'paused':''}">${isPaused(d.code)?'Tạm dừng':'Đang tiếp nhận'}</span></div><h3>${E(d.title)}</h3><p>${rooms().filter(r=>r.department_code===d.code).length} phòng khám</p><div class="dept-foot"><div><span>Số đang chờ</span><div><strong>${v.waiting_count||0}</strong> <span>phiếu</span></div></div><button class="small-link" data-page="book">Lấy số ${I('arrow',12)}</button></div></div>`;}
 function home(){const k=counts();const owner=ownTickets().find(t=>['WAITING','CALLED','SERVING'].includes(t.status))||ownTickets()[0];const progress=k.total?Math.round(k.completed/k.total*100):0;return title('DASHBOARD · MEDIQUEUE','Chào mừng trở lại 👋','Theo dõi hoạt động khám bệnh và quản lý hàng chờ trên cùng một màn hình.',`<button class="btn btn-ghost" data-action="refresh">${I('refresh')} Làm mới</button><button class="btn btn-primary" data-page="book">${I('plus')} Lấy số ngay</button>`)+stats()+`<div class="cols2"><div><section class="hero card"><div class="hero-inner"><div><span class="hero-tag">${I('zap',13)} GIẢI PHÁP BỆNH VIỆN THÔNG MINH</span><h2>Không còn phải chờ<br/>mà không biết đến lượt.</h2><p>Đăng ký nhanh, theo dõi thời gian chờ và chủ động sắp xếp lịch trình khám bệnh.</p><button class="btn" data-page="book">Đăng ký lượt khám ${I('arrow')}</button></div><div class="big-plus">${I('plus',70)}</div></div></section><section class="sec"><div class="section-top"><h2 class="section-title">Tình trạng các khoa</h2><button class="small-link" data-page="staff">Danh sách phòng ${I('arrow',13)}</button></div><div class="dept-grid">${departments().map(deptCard).join('')}</div></section></div><div><div class="card side-panel"><div class="section-top"><h2 class="section-title">${owner?'Phiếu khám của bạn':'Tình hình hàng chờ'}</h2>${I('ticket',17)}</div>${owner?`<div class="queue-box"><div class="eyebrow">Số thứ tự của bạn</div><div class="queue-number">${label(owner)}</div><p>${E(dept(owner.department_code).title)} · ${E(rooms().find(r=>r.id===owner.room_id)?.title||'Chưa phân phòng')}</p>${badge(owner.status)}</div>`:`<div class="queue-box"><div class="eyebrow">Đang phục vụ</div><div class="queue-number">${E(liveDept('GENERAL').current_label||'—')}</div><p>Khám tổng quát</p></div>`}<div class="progress-label"><span>Tiến độ khám</span><b>${progress}%</b></div><div class="progress"><span style="width:${progress}%"></span></div><div class="today-card"><div class="mini-row"><div class="left"><div class="mini-icon">${I('checkcircle')}</div><div><strong>Đã hoàn tất</strong><small>Trong dữ liệu hiện tại</small></div></div><div class="value">${k.completed} lượt</div></div><div class="mini-row"><div class="left"><div class="mini-icon">${I('clock')}</div><div><strong>Đang chờ</strong><small>Cần được tiếp nhận</small></div></div><div class="value">${k.waiting} lượt</div></div></div><div class="panel-note">${I('shield',17)}<span>${UI.mode==='demo'?'Đây là bản thử nghiệm. Tất cả tên và phiếu trên giao diện demo là dữ liệu giả.':'Dữ liệu phiếu khám được giới hạn theo vai trò và tài khoản đăng nhập.'}</span></div></div></div></div><section class="sec card card-pad"><div class="section-top"><h2 class="section-title">Danh sách phòng khám</h2><span class="pill-outline">${rooms().length} phòng</span></div>${roomTable(rooms().slice(0,6))}</section>`;}
 function roomTable(rs){return `<div class="tablewrap"><table class="table"><thead><tr><th>PHÒNG</th><th>CHUYÊN KHOA</th><th>ĐANG GỌI</th><th>CHỜ</th><th>TRẠNG THÁI</th></tr></thead><tbody>${rs.map(r=>{const v=liveRoom(r.id);return `<tr><td class="strong">${E(r.title)}</td><td>${E(dept(r.department_code).title)}</td><td class="strong">${E(v.current_label||'—')}</td><td>${v.waiting_count||0}</td><td><span class="tiny-status ${isPaused(r.department_code)?'paused':''}">${isPaused(r.department_code)?'Tạm dừng':r.is_available?'Hoạt động':'Tạm đóng'}</span></td></tr>`;}).join('')}</tbody></table></div>`;}
-function book(){const disabled=UI.mode==='cloud'&&!getSession();return title('DÀNH CHO BỆNH NHÂN','Đăng ký lấy số','Chọn chuyên khoa và lấy số thứ tự trực tuyến chỉ trong vài thao tác.')+`<div class="cols2"><section class="card card-pad"><div class="section-top"><h2 class="section-title">Thông tin đăng ký</h2><span class="pill-outline">${I('shield',12)} Bảo mật</span></div><form id="bookingForm" class="stack"><label class="field">Họ và tên người khám<input type="text" name="patientName" autocomplete="name" minlength="2" maxlength="60" required placeholder="Nhập họ và tên" value="${E(UI.mode==='demo'?demo.myName:'')}"/></label><label class="field">Chuyên khoa khám<select name="department">${departments().map(d=>`<option value="${E(d.code)}" ${d.code===UI.dept?'selected':''}>${E(d.title)}</option>`).join('')}</select></label><div class="alert">${I('alert',17)}<div>Số được cấp tự động theo thứ tự. Trường hợp ưu tiên cần nhân viên y tế xác nhận; cấp cứu được xử lý theo quy trình riêng.</div></div><button class="btn btn-primary btn-wide" ${disabled?'disabled':''} type="submit">${I('ticket')} Xác nhận lấy số ${I('arrow')}</button>${disabled?'<p class="muted">Đăng nhập Supabase trước khi lấy số trên cloud.</p>':''}</form></section><aside class="card side-panel"><h2 class="section-title" style="margin-bottom:22px">Hướng dẫn lấy số</h2><div class="stack">${[['01','Chọn chuyên khoa','Chọn khoa phù hợp với nhu cầu khám.'],['02','Nhận phiếu điện tử','Hệ thống cấp số tự động, không trùng trong ngày.'],['03','Check-in tại bệnh viện','Đưa mã check-in cho nhân viên tại quầy.'],['04','Theo dõi lượt khám','Xem phòng được chỉ định và số đang gọi.']].map(([n,t,d])=>`<div class="mini-row" style="justify-content:start;align-items:flex-start"><div class="mini-icon" style="background:#e6f7f4;color:#0b8d89;font-weight:850">${n}</div><div><strong>${t}</strong><small style="line-height:1.7">${d}</small></div></div>`).join('')}</div><div class="panel-note">${I('clock')}<span>Thời gian chờ chỉ là ước tính tham khảo, có thể thay đổi theo diễn biến khám thực tế.</span></div></aside></div><section class="sec"><div class="section-top"><h2 class="section-title">Tình trạng tiếp nhận</h2></div><div class="dept-grid">${departments().map(deptCard).join('')}</div></section>`;}
+let BOOKING=createBookingState();
+let bookingBusy=false;
+let bookingRequestKey=null;
+function bookingContext(){
+ return {profile:UI.remote?.profile||{},departments:departments(),rooms:rooms(),live:UI.remote?.live||[],dateLabel:displayDate(),submitting:bookingBusy};
+}
+function book(){
+ if(!BOOKING.initialized){
+  const profile=UI.remote?.profile||{};
+  BOOKING=createBookingState(profile);
+  BOOKING.initialized=true;
+  const available=departments().find(d=>departmentAvailable(d.code,departments(),rooms(),UI.remote?.live||[]));
+  BOOKING.department=available?.code||'';
+ }
+ return bookingView(BOOKING,bookingContext());
+}
+function restartBooking(){
+ BOOKING=createBookingState(UI.remote?.profile||{});
+ BOOKING.initialized=false;bookingRequestKey=null;
+}
 function waitEstimate(t){if(t.status!=='WAITING')return null;if(UI.mode==='cloud'){return UI.waiting[t.id]||null;}const q=tickets().filter(x=>x.status==='WAITING' && (t.room_id?x.room_id===t.room_id:x.department_code===t.department_code)).sort((a,b)=>(b.is_priority?1:0)-(a.is_priority?1:0)||a.queue_number-b.queue_number);const i=q.findIndex(x=>x.id===t.id);let active=tickets().filter(x=>x.room_id===t.room_id&&['CALLED','SERVING'].includes(x.status)).length;return {queue_position:i+1,estimate_minutes:Math.max(0,(i+active)*12)};}
 function patientTicketQr(t){
  const token=qrToken(t.qr_nonce);
@@ -243,10 +263,55 @@ if(a==='recall'){if(!t||!can('recall',t))return;UI.modal=null;render();await exe
 if(a==='assign-room'){if(!t||!can('transfer',t))return;let roomId=document.getElementById('modalRoom')?.value;UI.modal=null;render();await execute('mq_assign_room',{p_ticket_id:t.id,p_room_id:roomId},'Đã chuyển phòng cho '+label(t));return;}
 }
 function askModalFn(title,description,label,fn,danger){setModal({title,description,confirm:label,danger,doIt:fn});}
-document.addEventListener('click',async e=>{if(e.target.matches('.modal-backdrop')){UI.modal=null;render();return;}let nav=e.target.closest('[data-page]');if(nav){if(!navigation.some(n=>n[0]===nav.dataset.page))return;if(UI.mode==='cloud'&&!getSession()&&['book','track','reception','staff','analytics'].includes(nav.dataset.page)){UI.page='account';render();toast('Vui lòng đăng nhập để tiếp tục.','error');}else move(nav.dataset.page);return;}const b=e.target.closest('[data-action]');if(b)await actionFromClick(b);});
-document.addEventListener('change',e=>{if(e.target.id==='assignmentPicker'){const a=activeAssignments(verifiedAccess()).find(x=>x.id===e.target.value);if(!a)return;UI.assignmentId=a.id;UI.dept=a.department_code;UI.room=a.room_id||rooms().find(r=>r.department_code===a.department_code)?.id||'';UI.page='work-home';render();return;}if(e.target.id==='staffDept'){UI.dept=e.target.value;UI.room=rooms().find(r=>r.department_code===UI.dept)?.id||'';render();}if(e.target.id==='staffRoom'){UI.room=e.target.value;render();}if(e.target.id==='demoName'){demo.myName=e.target.value.trim();persist();} });
-document.addEventListener('input',e=>{if(e.target.id==='staffSearch'){UI.staffSearch=e.target.value;const pos=e.target.selectionStart;render();const x=document.getElementById('staffSearch');x?.focus();x?.setSelectionRange(pos,pos);}});
-document.addEventListener('submit',async e=>{if(e.target.id==='bookingForm'){e.preventDefault();const fd=new FormData(e.target),n=String(fd.get('patientName')||'').trim(),d=String(fd.get('department')||'GENERAL');if(n.length<2){toast('Tên phải có ít nhất 2 ký tự.','error');return;}UI.dept=d;if(UI.mode==='demo'){demo.myName=n;}const done=await execute('mq_issue_ticket',{p_department:d,p_name:n,p_request_key:rand()},'Đã cấp số thứ tự thành công.');if(done){UI.page='track';render();}}
+document.addEventListener('click',async e=>{
+ if(e.target.closest('[data-booking-department]')){
+  const code=e.target.closest('[data-booking-department]').dataset.bookingDepartment,ctx=bookingContext();
+  if(BOOKING.step!==1||!departmentAvailable(code,ctx.departments,ctx.rooms,ctx.live))return;
+  BOOKING.department=code;BOOKING.accepted=false;bookingRequestKey=null;render();return;
+ }
+ if(e.target.closest('[data-booking-back]')){if(bookingBusy)return;BOOKING.step=Math.max(0,BOOKING.step-1);render();return;}
+ if(e.target.closest('[data-booking-next]')){
+  if(bookingBusy)return;const why=validateBookingStep(BOOKING,bookingContext());
+  if(why){toast(why,'error');return;}
+  BOOKING.step=Math.min(3,BOOKING.step+1);render();return;
+ }
+ if(e.target.closest('[data-booking-reset]')){if(bookingBusy)return;restartBooking();render();return;}
+ if(e.target.matches('.modal-backdrop')){UI.modal=null;render();return;}let nav=e.target.closest('[data-page]');if(nav){if(!navigation.some(n=>n[0]===nav.dataset.page))return;if(UI.mode==='cloud'&&!getSession()&&['book','track','reception','staff','analytics'].includes(nav.dataset.page)){UI.page='account';render();toast('Vui lòng đăng nhập để tiếp tục.','error');}else move(nav.dataset.page);return;}const b=e.target.closest('[data-action]');if(b)await actionFromClick(b);});
+document.addEventListener('change',e=>{
+ if(e.target.id==='bookingAccept'){
+  BOOKING.accepted=e.target.checked;
+  const submit=document.querySelector('#bookingForm button[type=submit]');
+  if(submit)submit.disabled=!BOOKING.accepted||bookingBusy;
+  return;
+ }
+ if(e.target.id==='assignmentPicker'){const a=activeAssignments(verifiedAccess()).find(x=>x.id===e.target.value);if(!a)return;UI.assignmentId=a.id;UI.dept=a.department_code;UI.room=a.room_id||rooms().find(r=>r.department_code===a.department_code)?.id||'';UI.page='work-home';render();return;}if(e.target.id==='staffDept'){UI.dept=e.target.value;UI.room=rooms().find(r=>r.department_code===UI.dept)?.id||'';render();}if(e.target.id==='staffRoom'){UI.room=e.target.value;render();}if(e.target.id==='demoName'){demo.myName=e.target.value.trim();persist();} });
+document.addEventListener('input',e=>{
+ if(e.target.id==='bookingPatientName'){
+  BOOKING.patientName=e.target.value;
+  BOOKING.accepted=false;bookingRequestKey=null;
+  const next=document.querySelector('[data-booking-next]');
+  if(next)next.disabled=String(BOOKING.patientName).trim().length<2||String(BOOKING.patientName).trim().length>60;
+  return;
+ }
+ if(e.target.id==='staffSearch'){UI.staffSearch=e.target.value;const pos=e.target.selectionStart;render();const x=document.getElementById('staffSearch');x?.focus();x?.setSelectionRange(pos,pos);}});
+document.addEventListener('submit',async e=>{if(e.target.id==='bookingForm'){
+ e.preventDefault();
+ if(bookingBusy||BOOKING.step!==3||!getSession()||portal!=='patient')return;
+ const context=bookingContext(),problem=validateBookingStep(BOOKING,context);
+ if(problem){toast(problem,'error');return;}
+ const n=BOOKING.patientName.trim(),d=BOOKING.department;
+ if(!departmentAvailable(d,context.departments,context.rooms,context.live)){toast('Khoa đã tạm ngừng tiếp nhận. Vui lòng cập nhật thông tin.','error');return;}
+ const requestKey=bookingRequestKey||(bookingRequestKey=rand());
+ bookingBusy=true;render();
+ try{
+  await rpc('mq_issue_ticket',{p_department:d,p_name:n,p_request_key:requestKey});
+  UI.dept=d;restartBooking();UI.page='track';
+  await refresh(true);toast('Đã cấp số thứ tự. Xem QR check-in trong Phiếu khám của tôi.');
+ }catch(err){
+  bookingBusy=false;
+  render();toast('Không thể cấp số: '+(err?.message||String(err)),'error');
+ }finally{bookingBusy=false;}
+}
 else if(e.target.id==='authForm'){e.preventDefault();if(UI.authBusy)return;UI.authBusy=true;UI.authError='';const submit=e.target.querySelector('button[type=submit]');const originalLabel=submit?.textContent;if(submit){submit.disabled=true;submit.setAttribute('aria-busy','true');submit.textContent='Đang xử lý…';}const fd=new FormData(e.target),email=String(fd.get('email')),pw=String(fd.get('password'));try{
  if(STAFF_PORTAL || UI.authTab==='login'){
   await signIn(email,pw);
