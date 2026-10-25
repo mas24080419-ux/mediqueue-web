@@ -24,7 +24,7 @@ assert.match(validateBookingStep(state,context),/chuyên khoa/);
 assert.match(bookingView(state,context),/disabled/);
 state.department='GENERAL';assert.equal(validateBookingStep(state,context),'');
 state.step=2;const scheduling=bookingView(state,context);
-assert.match(scheduling,/Đặt lịch hẹn theo giờ/);assert.match(scheduling,/Chưa có hồ sơ đã xác minh hoặc lịch khám được công bố/);
+assert.match(scheduling,/Đặt lịch theo giờ/);assert.match(scheduling,/Chưa có hồ sơ đã xác minh hoặc lịch khám được công bố/);
 assert.match(scheduling,/Hôm nay/);
 assert.doesNotMatch(scheduling,/data-booking-v5-service/,'appointment form must stay hidden in ticket mode');
 state.mode='appointment';
