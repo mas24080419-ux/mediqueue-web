@@ -1,11 +1,12 @@
 import {hasCloudConfig,getSession,signIn,signUp,signOut,loadCloudData,rpc,consumeAuthRedirect} from './supabase-client.js';
 import {sidebar,svg,installSidebar} from './premium-sidebar.js';
 import {titles,activeAssignments,permitted,menuFor,routeAllowed} from './access.js';
-import {qrToken,ticketQrSvg,ticketQrPng} from './ticket-qr.js';
+import {qrToken,parseTicketQrPayload,ticketQrSvg,ticketQrPng} from './ticket-qr.js';
 
 const ADMIN_PORTAL = typeof window !== 'undefined' && /\/admin\.html$/i.test(window.location?.pathname || '');
 const portal=ADMIN_PORTAL?'admin':/\/staff\.html$/i.test(window.location?.pathname || '')?'staff':'patient';
 const STAFF_PORTAL = typeof window !== 'undefined' && (/\/staff\.html$/i.test(window.location?.pathname || '')||ADMIN_PORTAL);
+const PENDING_CHECKIN = STAFF_PORTAL&&!ADMIN_PORTAL?qrToken(new URLSearchParams(location.hash.slice(1)).get('checkin')):null;
 const UI={page:STAFF_PORTAL?'account':'home',role:STAFF_PORTAL?'staff':'patient',mode:'cloud',authTab:'login',dept:'GENERAL',room:'GENERAL_101',staffSearch:'',filter:'ALL',authBusy:false,authError:'',syncError:'',remote:null,modal:null,showMenu:false,waiting:{},assignmentId:null,updated:Date.now()};
 const storeKey='mediqueue_web_demo_v1';
 const dateVN=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -149,6 +150,12 @@ touch(t);return t;}
 async function execute(name,params,success){try{if(UI.mode==='cloud'){if(!getSession())throw Error('Vui lòng đăng nhập.');await rpc(name,params);await refresh(true);}else demoChange(name,params);if(success)toast(success);return true;}catch(err){toast(err.message||String(err),'error');return false;}}
 async function refresh(silent=false){try{UI.syncError='';if(UI.mode==='cloud'&&getSession()){UI.remote=await loadCloudData();UI.updated=Date.now();const ts=ownTickets().filter(t=>t.status==='WAITING');const waits=await Promise.all(ts.slice(0,12).map(t=>rpc('mq_my_wait_info',{p_ticket_id:t.id}).then(r=>[t.id,Array.isArray(r)?r[0]:r]).catch(()=>[t.id,null])));UI.waiting=Object.fromEntries(waits); }else if(UI.mode==='demo'){const raw=localStorage.getItem(storeKey);if(raw){try{const d=JSON.parse(raw);if(d.day===dateVN())demo=d;}catch{}}}render();if(!silent)toast('Dữ liệu đã được cập nhật.');}catch(err){UI.syncError='Không thể đồng bộ dữ liệu. '+err.message;if(UI.mode==='cloud'&&!getSession()){UI.remote=null;UI.waiting={};UI.page='account';}render();if(!silent)toast(UI.syncError,'error');}}
 function askConfirm(title,desc,action,params,label,danger=false){setModal({title,description:desc,confirm:label,danger,doIt:()=>execute(action,params,`Đã thực hiện: ${title.toLowerCase()}`)});}
+function showCheckinForm(nonce=''){
+ if(!can('checkin'))return false;
+ const code=qrToken(nonce)||'';
+ setModal({title:'Check-in phiếu khám',description:'Quét QR hoặc nhập mã bệnh nhân. Chỉ nhân viên được phân công có thể xác nhận check-in.',body:'<form id="checkinForm" class="stack"><label class="field">Mã check-in<input name="nonce" required autocomplete="off" placeholder="Quét QR hoặc nhập mã UUID" value="'+E(code)+'" /></label><div class="mq-qr-scan-actions"><button type="button" class="btn btn-outline btn-sm" data-action="scan-ticket-camera">Quét bằng camera</button><button type="button" class="btn btn-ghost btn-sm" data-action="stop-ticket-camera">Tắt camera</button></div><video id="qr-scan-video" class="mq-qr-scan-video" muted autoplay playsinline hidden aria-label="Camera quét QR"></video><button type="submit" class="btn btn-primary btn-wide">Xác nhận check-in</button></form>'});
+ return true;
+}
 let qrCameraStream=null,qrCameraFrame=0,qrScanEpoch=0;
 function stopQrCamera(){
  qrScanEpoch++;
@@ -182,7 +189,7 @@ async function scanCheckinQR(){
    if(qrScanEpoch!==current||!video.isConnected)return;
    try{
     const detected=await detector.detect(video);
-    const nonce=detected.map(item=>qrToken(item.rawValue)).find(Boolean);
+    const nonce=detected.map(item=>parseTicketQrPayload(item.rawValue)).find(Boolean);
     if(nonce){
      const input=document.querySelector('#checkinForm input[name=nonce]');
      if(input){input.value=nonce;stopQrCamera();toast('Đã đọc mã QR. Kiểm tra và xác nhận check-in.');return;}
@@ -226,7 +233,7 @@ if(a==='close-modal'){UI.modal=null;render();return;}
 if(a==='confirm-modal'){const m=UI.modal;UI.modal=null;render();if(m?.doIt)await m.doIt();return;}
 if(a==='call-next'){if(!UI.room||!can('call'))return;askConfirm('Gọi lượt tiếp theo',`Gọi bệnh nhân đang chờ tại ${rooms().find(r=>r.id===UI.room)?.title||UI.room}?`,'mq_call_next_room',{p_room_id:UI.room},'Gọi số');return;}
 if(a==='toggle-pause'){if(!can('pause'))return;const paused=isPaused(UI.dept);askConfirm(paused?'Mở lại khoa':'Tạm dừng khoa',paused?'Cho phép tiếp nhận và gọi số trở lại.':'Tạm dừng cấp số và gọi số tại toàn bộ phòng trong khoa.','mq_set_department_pause',{p_department:UI.dept,p_paused:!paused,p_reason:paused?null:'Điều phối phòng khám'},paused?'Mở lại':'Tạm dừng',!paused);return;}
-if(a==='checkin-form'){if(!can('checkin'))return;setModal({title:'Check-in phiếu khám',description:'Quét QR của bệnh nhân hoặc nhập mã trên phiếu. Máy chủ xác minh quyền, trạng thái và phân phòng.',body:'<form id="checkinForm" class="stack"><label class="field">Mã check-in<input name="nonce" required autocomplete="off" placeholder="Quét mã hoặc nhập UUID" /></label><div class="mq-qr-scan-actions"><button type="button" class="btn btn-outline btn-sm" data-action="scan-ticket-camera">Quét bằng camera</button><button type="button" class="btn btn-ghost btn-sm" data-action="stop-ticket-camera">Tắt camera</button></div><video id="qr-scan-video" class="mq-qr-scan-video" muted autoplay playsinline hidden aria-label="Camera quét QR"></video><button type="submit" class="btn btn-primary btn-wide">Xác nhận check-in</button></form>'});return;}
+if(a==='checkin-form'){showCheckinForm();return;}
 if(a==='scan-ticket-camera'){await scanCheckinQR();return;}
 if(a==='stop-ticket-camera'){stopQrCamera();return;}
 if(a==='ticket-actions'){if(!t)return;const rr=rooms().filter(r=>r.department_code===t.department_code);let buttons=[['START','Bắt đầu khám'],['FINISH','Hoàn tất khám'],['SKIP','Bỏ lượt'],['RESTORE','Khôi phục phiếu'],['PRIORITY',t.is_priority?'Bỏ ưu tiên':'Đánh dấu ưu tiên']].filter(([k])=>k==='START'?t.status==='CALLED':k==='FINISH'?t.status==='SERVING':k==='SKIP'?['CALLED','WAITING'].includes(t.status):k==='RESTORE'?t.status==='SKIPPED':t.status==='WAITING');
@@ -257,7 +264,7 @@ else if(e.target.id==='authForm'){e.preventDefault();if(UI.authBusy)return;UI.au
   }else{toast('Đã gửi email xác minh. Hãy mở email rồi quay lại website.');UI.authTab='login';}render();
  }
 }catch(err){UI.authError=err.message==='Invalid login credentials'?'Email hoặc mật khẩu không đúng. Hãy kiểm tra tài khoản thử của MediQueue.':err.message;render();toast(UI.authError,'error');}finally{UI.authBusy=false;if(submit?.isConnected){submit.disabled=false;submit.removeAttribute('aria-busy');submit.textContent=originalLabel;}}}
-else if(e.target.id==='checkinForm'){e.preventDefault();const nonce=qrToken(new FormData(e.target).get('nonce'));if(!nonce){toast('Mã check-in không hợp lệ.','error');return;}UI.modal=null;render();await execute('mq_checkin_qr',{p_nonce:nonce},'Check-in thành công.');}});
+else if(e.target.id==='checkinForm'){e.preventDefault();const nonce=parseTicketQrPayload(new FormData(e.target).get('nonce'));if(!nonce){toast('Mã check-in không hợp lệ.','error');return;}UI.modal=null;render();await execute('mq_checkin_qr',{p_nonce:nonce},'Check-in thành công.');}});
 window.addEventListener('storage',e=>{if(e.key===storeKey&&UI.mode==='demo'){demo=seedDemo();render();}});
 try{const bc=new BroadcastChannel('mq-demo');bc.onmessage=e=>{if(e.data?.type==='updated'&&UI.mode==='demo'){demo=seedDemo();render();}};}catch{}
 setInterval(()=>{if(UI.mode==='cloud'&&getSession()&&!document.hidden)refresh(true);},15000);
@@ -270,7 +277,7 @@ if(hasCloudConfig()){
      if(ADMIN_PORTAL?data.profile?.role!=='admin':STAFF_PORTAL?data.profile?.role!=='staff':data.profile?.role!=='patient'){
        await signOut();UI.remote=null;UI.page='account';render();
        toast('Tài khoản thuộc cổng khác. Vui lòng đăng nhập vào cổng phù hợp.','error');
-     }else{UI.remote=data;UI.page=confirmed?'account':(ADMIN_PORTAL?'admin-home':STAFF_PORTAL?'work-home':'home');await refresh(true);if(confirmed)toast('Xác minh email thành công.');}
+     }else{UI.remote=data;UI.page=confirmed?'account':(ADMIN_PORTAL?'admin-home':STAFF_PORTAL?'work-home':'home');await refresh(true);if(PENDING_CHECKIN){window.history.replaceState(null,'',location.pathname+location.search);if(can('checkin')&&routeAllowed('reception',verifiedAccess(),portal,assignment()?.id)){UI.page='reception';showCheckinForm(PENDING_CHECKIN);}else toast('Tài khoản chưa được cấp quyền tiếp đón để xác nhận mã QR.','error');}if(confirmed)toast('Xác minh email thành công.');}
    }catch(err){UI.page='account';UI.remote=null;render();toast('Không thể tải tài khoản: '+err.message,'error');}
  } else{UI.page='account';render();}
 }else{persist();render();}
