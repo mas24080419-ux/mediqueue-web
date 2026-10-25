@@ -24,6 +24,9 @@ jobs:
           node --check auth-v4.js
           node --check app.js
           node --check booking-flow.js
+          node --check appointment-v5-ui.js
+          node --check appointment-v5-runtime.js
+          node tests/appointment-v5.mjs
           node tests/booking-flow.mjs
           node --check ticket-qr.js
           node --check vendor/qrcode.js
@@ -40,7 +43,7 @@ jobs:
       - name: Build public website files only
         run: |
           mkdir -p _site/assets
-          cp index.html staff.html admin.html scan.html scan.js scan.css auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css booking-flow.css booking-flow.js ticket-qr.js app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
+          cp index.html staff.html admin.html scan.html scan.js scan.css auth-v4.js auth-v4.css patient-landing.css styles.css dashboard.css premium-sidebar.css integration.css booking-flow.css booking-flow.js appointment-v5-ui.js appointment-v5-runtime.js ticket-qr.js app.js premium-sidebar.js access.js supabase-client.js config.js .nojekyll _site/
           cp assets/logo.svg assets/mark.svg _site/assets/
           cp -R vendor _site/vendor
       - name: Configure GitHub Pages
