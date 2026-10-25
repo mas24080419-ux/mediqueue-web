@@ -50,7 +50,7 @@ async function workspace(){
  if(launched)return;
  launched=true;
  // Load old workspace CSS only after entering, to avoid shared CSS overriding V4 login.
- for(const href of ['auth-v3.css','styles.css','dashboard.css','premium-sidebar.css','integration.css']){
+ for(const href of ['patient-landing.css','styles.css','dashboard.css','premium-sidebar.css','integration.css']){
   const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);
  }
  document.body.className=portal==='admin'?'workspace admin-workspace':'workspace';
